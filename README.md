@@ -1,2 +1,2 @@
 # scorecard
-Advanced scorecard web using python 
+Advanced golf scorecard web using python 
