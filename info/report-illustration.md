@@ -1,6 +1,6 @@
-Report Illustration Design
+# Report Illustration Design
 
-Congratulations! You Have Finish 9 hole
+🎉 **Congratulations! You Have Finished 9 Holes!** 🎉
 
 ## Golf Scorecard
 
@@ -30,10 +30,9 @@ Congratulations! You Have Finish 9 hole
 -  
 -  
 
+---
 
-18 Hole
-
-Congratulations! You Have Finish 18 Hole
+🎉 **Congratulations! You Have Finished 18 Holes!** 🎉
 
 ## Golf Scorecard
 
@@ -51,6 +50,8 @@ Congratulations! You Have Finish 18 Hole
 |------|----------------|-------------|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
 |      |                |             |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
 |------|----------------|-------------|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+
+---
 
 ### Recommendation
 
