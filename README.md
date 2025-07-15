@@ -1,6 +1,6 @@
-# Advanced Golf Scorecard Web 🇮🇩⛳
+# Advanced Golf Scorecard Web
 
-**Versi: Beta | Bahasa: Python | Lokasi: Lapangan Golf Indonesia Saja**
+**IN PROGRESS NOT READY FOR CLONE**
 
 ---
 
@@ -57,6 +57,6 @@ Aplikasi ini hanya mendukung lapangan golf yang berlokasi di **Indonesia**, sepe
 
 ## 🔗 Link Demo
 
-👉 [Lihat Demo Langsung di Sini](https://contoh-link-demo.com)
+Unvailable
 
 ---
