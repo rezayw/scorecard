@@ -129,6 +129,14 @@ def init_db():
             name TEXT NOT NULL,
             phone TEXT,
             isVerified INTEGER DEFAULT 0,
+            handicapIndex REAL,
+            homeCourse TEXT,
+            bio TEXT,
+            avatar TEXT,
+            city TEXT,
+            memberSince TEXT,
+            totalRounds INTEGER DEFAULT 0,
+            bestScore INTEGER,
             createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
             updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -1666,6 +1674,168 @@ def get_current_user():
             }
         })
     return jsonify({'authenticated': False})
+
+
+@app.route('/api/profile')
+def get_profile():
+    """Get current user's full profile"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, email, name, phone, handicapIndex, homeCourse, bio, avatar, city, 
+               memberSince, totalRounds, bestScore, createdAt
+        FROM User WHERE id = ?
+    ''', (session['user_id'],))
+    
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    return jsonify(dict(user))
+
+
+@app.route('/api/profile', methods=['PUT'])
+def update_profile():
+    """Update current user's profile"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Build update query dynamically based on provided fields
+    allowed_fields = ['name', 'phone', 'handicapIndex', 'homeCourse', 'bio', 'avatar', 'city']
+    updates = []
+    values = []
+    
+    for field in allowed_fields:
+        if field in data:
+            updates.append(f'{field} = ?')
+            values.append(data[field])
+    
+    if not updates:
+        return jsonify({'error': 'No fields to update'}), 400
+    
+    updates.append('updatedAt = CURRENT_TIMESTAMP')
+    values.append(session['user_id'])
+    
+    query = f"UPDATE User SET {', '.join(updates)} WHERE id = ?"
+    cursor.execute(query, values)
+    
+    # Update session if name changed
+    if 'name' in data:
+        session['user_name'] = data['name']
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Profile updated successfully'})
+
+
+@app.route('/api/profile/stats')
+def get_profile_stats():
+    """Get user's golf statistics"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    user_id = session['user_id']
+    
+    # Get total rounds played
+    cursor.execute('''
+        SELECT COUNT(DISTINCT g.id) as totalRounds,
+               MIN(p.totalScore) as bestScore,
+               AVG(p.totalScore) as avgScore
+        FROM Game g
+        JOIN Player p ON g.id = p.gameId
+        WHERE p.name = (SELECT name FROM User WHERE id = ?)
+    ''', (user_id,))
+    
+    stats = cursor.fetchone()
+    
+    # Get courses played
+    cursor.execute('''
+        SELECT COUNT(DISTINCT c.id) as coursesPlayed
+        FROM Game g
+        JOIN Course c ON g.courseId = c.id
+        JOIN Player p ON g.id = p.gameId
+        WHERE p.name = (SELECT name FROM User WHERE id = ?)
+    ''', (user_id,))
+    
+    courses = cursor.fetchone()
+    
+    # Get recent games
+    cursor.execute('''
+        SELECT g.date, c.name as courseName, p.totalScore, g.holeCount
+        FROM Game g
+        JOIN Course c ON g.courseId = c.id
+        JOIN Player p ON g.id = p.gameId
+        WHERE p.name = (SELECT name FROM User WHERE id = ?)
+        ORDER BY g.date DESC
+        LIMIT 5
+    ''', (user_id,))
+    
+    recent_games = [dict(row) for row in cursor.fetchall()]
+    
+    conn.close()
+    
+    return jsonify({
+        'totalRounds': stats['totalRounds'] or 0,
+        'bestScore': stats['bestScore'],
+        'avgScore': round(stats['avgScore'], 1) if stats['avgScore'] else None,
+        'coursesPlayed': courses['coursesPlayed'] or 0,
+        'recentGames': recent_games
+    })
+
+
+@app.route('/api/profile/change-password', methods=['POST'])
+def change_password():
+    """Change user's password"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    current_password = data.get('currentPassword', '')
+    new_password = data.get('newPassword', '')
+    
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current and new password required'}), 400
+    
+    if len(new_password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Verify current password
+    cursor.execute('SELECT password FROM User WHERE id = ?', (session['user_id'],))
+    user = cursor.fetchone()
+    
+    if not user or user[0] != hash_password(current_password):
+        conn.close()
+        return jsonify({'error': 'Current password is incorrect'}), 400
+    
+    # Update password
+    hashed_password = hash_password(new_password)
+    cursor.execute('UPDATE User SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+                   (hashed_password, session['user_id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Password changed successfully'})
 
 
 # =====================================

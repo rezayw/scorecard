@@ -64,6 +64,14 @@ function updateUIForLoggedInUser() {
         document.getElementById('welcomeUserName').textContent = authState.user.name;
         document.getElementById('userWelcomeCard').classList.remove('hidden');
         document.getElementById('quickStatsCard').classList.add('hidden');
+        
+        // Update avatar initial
+        const initial = authState.user.name ? authState.user.name.charAt(0).toUpperCase() : 'U';
+        const avatarEl = document.getElementById('userAvatarLanding');
+        if (avatarEl) avatarEl.textContent = initial;
+        
+        // Load user quick stats
+        loadUserQuickStats();
     } else {
         document.getElementById('accountBtnText').textContent = 'Login';
         document.getElementById('userWelcomeCard').classList.add('hidden');
@@ -71,16 +79,70 @@ function updateUIForLoggedInUser() {
     }
 }
 
+async function loadUserQuickStats() {
+    try {
+        const [profileRes, statsRes] = await Promise.all([
+            fetch('/api/profile'),
+            fetch('/api/profile/stats')
+        ]);
+        
+        if (profileRes.ok) {
+            const profile = await profileRes.json();
+            document.getElementById('userHandicap').textContent = profile.handicapIndex ? profile.handicapIndex.toFixed(1) : '-';
+        }
+        
+        if (statsRes.ok) {
+            const stats = await statsRes.json();
+            document.getElementById('userTotalRounds').textContent = stats.totalRounds || 0;
+            document.getElementById('userBestScore').textContent = stats.bestScore || '-';
+        }
+    } catch (error) {
+        console.error('Failed to load user quick stats:', error);
+    }
+}
+
 function showAuthModal() {
     if (authState.user) {
-        // Show account menu or logout
-        if (confirm('Do you want to logout?')) {
-            handleLogout();
-        }
+        // Show profile instead of logout confirmation
+        showProfile();
         return;
     }
     document.getElementById('authModal').classList.remove('hidden');
     showLoginForm();
+}
+
+// Helper function to require login before accessing features
+function requireLogin(callback) {
+    if (!authState.user) {
+        showLoginRequiredAlert();
+        return false;
+    }
+    if (callback) callback();
+    return true;
+}
+
+function showLoginRequiredAlert() {
+    // Show a toast notification
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-amber-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 animate-fade-in';
+    toast.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m4-6V5a2 2 0 00-2-2H8a2 2 0 00-2 2v6m10 0H4"/>
+        </svg>
+        <span>Please login first to access this feature</span>
+    `;
+    document.body.appendChild(toast);
+    
+    // Show auth modal
+    setTimeout(() => {
+        document.getElementById('authModal').classList.remove('hidden');
+        showLoginForm();
+    }, 500);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
 function hideAuthModal() {
@@ -471,10 +533,21 @@ async function handleLogout() {
 }
 
 // =====================================
-// Events Functions
+// Profile Functions
 // =====================================
 
-function showEvents() {
+let profileState = {
+    profile: null,
+    stats: null
+};
+
+function showProfile() {
+    if (!authState.user) {
+        showToast('Please login to view profile');
+        showAuthModal();
+        return;
+    }
+    
     document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('appHeader').classList.remove('hidden');
     document.getElementById('progressBar').classList.add('hidden');
@@ -483,6 +556,292 @@ function showEvents() {
     hideAllSteps();
     document.getElementById('courseListSection').classList.add('hidden');
     document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.add('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.remove('hidden');
+    
+    const historySection = document.getElementById('historySection');
+    if (historySection) historySection.classList.add('hidden');
+    
+    loadProfile();
+    loadProfileStats();
+}
+
+async function loadProfile() {
+    try {
+        const response = await fetch('/api/profile');
+        const data = await response.json();
+        
+        if (response.ok) {
+            profileState.profile = data;
+            renderProfile(data);
+        } else {
+            showToast(data.error || 'Failed to load profile');
+        }
+    } catch (error) {
+        console.error('Failed to load profile:', error);
+        showToast('Failed to load profile');
+    }
+}
+
+async function loadProfileStats() {
+    try {
+        const response = await fetch('/api/profile/stats');
+        const data = await response.json();
+        
+        if (response.ok) {
+            profileState.stats = data;
+            renderProfileStats(data);
+        }
+    } catch (error) {
+        console.error('Failed to load profile stats:', error);
+    }
+}
+
+function renderProfile(profile) {
+    const initial = profile.name ? profile.name.charAt(0).toUpperCase() : 'U';
+    
+    // Update avatar
+    document.getElementById('profileAvatar').textContent = initial;
+    document.getElementById('userAvatarLanding').textContent = initial;
+    
+    // Update basic info
+    document.getElementById('profileName').textContent = profile.name || 'User';
+    document.getElementById('profileEmail').textContent = profile.email;
+    document.getElementById('profileCity').textContent = profile.city ? `📍 ${profile.city}` : '📍 Indonesia';
+    
+    // Update golf info
+    document.getElementById('profileHandicapIndex').textContent = profile.handicapIndex ? profile.handicapIndex.toFixed(1) : 'Not set';
+    document.getElementById('profileHandicap').textContent = profile.handicapIndex ? profile.handicapIndex.toFixed(1) : '-';
+    document.getElementById('userHandicap').textContent = profile.handicapIndex ? profile.handicapIndex.toFixed(1) : '-';
+    document.getElementById('profileHomeCourse').textContent = profile.homeCourse || 'Not set';
+    
+    // Update bio
+    document.getElementById('profileBio').textContent = profile.bio || 'No bio yet. Tap edit to add one!';
+    
+    // Update member since
+    const createdAt = new Date(profile.createdAt);
+    const memberSince = createdAt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    document.getElementById('profileMemberSince').textContent = `Member since ${memberSince}`;
+}
+
+function renderProfileStats(stats) {
+    document.getElementById('profileTotalRounds').textContent = stats.totalRounds || 0;
+    document.getElementById('userTotalRounds').textContent = stats.totalRounds || 0;
+    
+    document.getElementById('profileBestScore').textContent = stats.bestScore || '-';
+    document.getElementById('userBestScore').textContent = stats.bestScore || '-';
+    
+    document.getElementById('profileAvgScore').textContent = stats.avgScore || '-';
+    document.getElementById('profileCoursesPlayed').textContent = stats.coursesPlayed || 0;
+    
+    // Render recent games
+    const container = document.getElementById('profileRecentGames');
+    
+    if (!stats.recentGames || stats.recentGames.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No games played yet</p>';
+        return;
+    }
+    
+    container.innerHTML = stats.recentGames.map(game => {
+        const gameDate = new Date(game.date);
+        const formattedDate = gameDate.toLocaleDateString('id-ID', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+        });
+        
+        return `
+            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                <div>
+                    <p class="font-medium text-gray-800 text-sm">${game.courseName}</p>
+                    <p class="text-xs text-gray-500">${formattedDate} • ${game.holeCount} holes</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-golf-600">${game.totalScore}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function showEditProfileModal() {
+    const profile = profileState.profile;
+    if (!profile) {
+        loadProfile().then(() => showEditProfileModal());
+        return;
+    }
+    
+    // Populate form fields
+    document.getElementById('editProfileName').value = profile.name || '';
+    document.getElementById('editProfilePhone').value = profile.phone || '';
+    document.getElementById('editProfileCity').value = profile.city || '';
+    document.getElementById('editProfileHandicap').value = profile.handicapIndex || '';
+    document.getElementById('editProfileBio').value = profile.bio || '';
+    
+    // Update avatar preview
+    const initial = profile.name ? profile.name.charAt(0).toUpperCase() : 'U';
+    document.getElementById('editProfileAvatar').textContent = initial;
+    
+    // Populate home course dropdown
+    populateHomeCourseDropdown(profile.homeCourse);
+    
+    document.getElementById('editProfileModal').classList.remove('hidden');
+}
+
+function hideEditProfileModal() {
+    document.getElementById('editProfileModal').classList.add('hidden');
+}
+
+function populateHomeCourseDropdown(selectedCourse) {
+    const select = document.getElementById('editProfileHomeCourse');
+    select.innerHTML = '<option value="">-- Select your home course --</option>';
+    
+    // Use the courses from gameState
+    if (gameState.courses) {
+        for (const [region, courses] of Object.entries(gameState.courses)) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = region.charAt(0).toUpperCase() + region.slice(1);
+            
+            courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.name;
+                option.textContent = course.name;
+                if (course.name === selectedCourse) {
+                    option.selected = true;
+                }
+                optgroup.appendChild(option);
+            });
+            
+            select.appendChild(optgroup);
+        }
+    }
+}
+
+async function saveProfile() {
+    const name = document.getElementById('editProfileName').value.trim();
+    const phone = document.getElementById('editProfilePhone').value.trim();
+    const city = document.getElementById('editProfileCity').value.trim();
+    const handicapIndex = document.getElementById('editProfileHandicap').value;
+    const homeCourse = document.getElementById('editProfileHomeCourse').value;
+    const bio = document.getElementById('editProfileBio').value.trim();
+    
+    if (!name) {
+        showToast('Name is required');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                phone,
+                city,
+                handicapIndex: handicapIndex ? parseFloat(handicapIndex) : null,
+                homeCourse,
+                bio
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Profile updated successfully! ✨');
+            hideEditProfileModal();
+            
+            // Update authState and UI
+            authState.user.name = name;
+            document.getElementById('welcomeUserName').textContent = name;
+            document.getElementById('accountBtnText').textContent = name.split(' ')[0];
+            
+            loadProfile();
+        } else {
+            showToast(data.error || 'Failed to update profile');
+        }
+    } catch (error) {
+        console.error('Save profile error:', error);
+        showToast('Failed to save profile');
+    }
+    
+    showLoading(false);
+}
+
+function showChangePasswordModal() {
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmNewPassword').value = '';
+    document.getElementById('changePasswordModal').classList.remove('hidden');
+}
+
+function hideChangePasswordModal() {
+    document.getElementById('changePasswordModal').classList.add('hidden');
+}
+
+async function changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+        showToast('Please fill all fields');
+        return;
+    }
+    
+    if (newPassword !== confirmNewPassword) {
+        showToast('New passwords do not match');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        showToast('Password must be at least 6 characters');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/profile/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Password changed successfully! 🔒');
+            hideChangePasswordModal();
+        } else {
+            showToast(data.error || 'Failed to change password');
+        }
+    } catch (error) {
+        console.error('Change password error:', error);
+        showToast('Failed to change password');
+    }
+    
+    showLoading(false);
+}
+
+// =====================================
+// Events Functions
+// =====================================
+
+function showEvents() {
+    if (!requireLogin()) return;
+    
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    
+    hideAllSteps();
+    document.getElementById('courseListSection').classList.add('hidden');
+    document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
     document.getElementById('eventsSection').classList.remove('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
     
@@ -1084,6 +1443,8 @@ let forumState = {
 };
 
 function showForum() {
+    if (!requireLogin()) return;
+    
     document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('appHeader').classList.remove('hidden');
     document.getElementById('progressBar').classList.add('hidden');
@@ -1093,6 +1454,7 @@ function showForum() {
     document.getElementById('courseListSection').classList.add('hidden');
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
     document.getElementById('forumSection').classList.remove('hidden');
     
     const historySection = document.getElementById('historySection');
@@ -1486,10 +1848,13 @@ function showLanding() {
     document.getElementById('forumSection').classList.add('hidden');
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
     loadLandingStats();
 }
 
 function showGameSetup() {
+    if (!requireLogin()) return;
+    
     document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('appHeader').classList.remove('hidden');
     document.getElementById('progressBar').classList.remove('hidden');
@@ -1498,10 +1863,13 @@ function showGameSetup() {
     document.getElementById('forumSection').classList.add('hidden');
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
     showStep(1);
 }
 
 function showCourseList() {
+    if (!requireLogin()) return;
+    
     document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('appHeader').classList.remove('hidden');
     document.getElementById('progressBar').classList.add('hidden');
@@ -1510,6 +1878,7 @@ function showCourseList() {
     document.getElementById('forumSection').classList.add('hidden');
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
     hideAllSteps();
     renderCourseList();
 }
@@ -2140,6 +2509,8 @@ function renderHistory(history) {
 }
 
 function showHistory() {
+    if (!requireLogin()) return;
+    
     document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('appHeader').classList.remove('hidden');
     document.getElementById('progressBar').classList.add('hidden');
@@ -2148,6 +2519,7 @@ function showHistory() {
     document.getElementById('forumSection').classList.add('hidden');
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
     
     document.getElementById('step1').classList.add('hidden');
     document.getElementById('step2').classList.add('hidden');

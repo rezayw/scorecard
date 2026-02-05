@@ -79,19 +79,44 @@
             
             <!-- User Welcome Card (shown when logged in) -->
             <div id="userWelcomeCard" class="px-4 -mt-8 relative z-20 hidden">
-                <div class="bg-white rounded-2xl shadow-lg p-4 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-golf-100 rounded-full flex items-center justify-center">
-                            <span class="text-xl">👤</span>
+                <div class="bg-white rounded-2xl shadow-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3 cursor-pointer" onclick="showProfile()">
+                            <div id="userAvatarLanding" class="w-12 h-12 bg-gradient-to-br from-golf-400 to-golf-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                U
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Welcome back,</p>
+                                <p id="welcomeUserName" class="font-semibold text-gray-800">User</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-500">Welcome back,</p>
-                            <p id="welcomeUserName" class="font-semibold text-gray-800">User</p>
+                        <div class="flex items-center gap-2">
+                            <button onclick="showProfile()" class="p-2 text-golf-600 hover:bg-golf-50 rounded-full transition" title="My Profile">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </button>
+                            <button onclick="handleLogout()" class="p-2 text-red-500 hover:bg-red-50 rounded-full transition" title="Logout">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
-                    <button onclick="handleLogout()" class="text-red-500 text-sm font-medium hover:text-red-600">
-                        Logout
-                    </button>
+                    <div id="userQuickStats" class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-100 text-center text-xs">
+                        <div>
+                            <p class="font-bold text-golf-600" id="userTotalRounds">0</p>
+                            <p class="text-gray-500">Rounds</p>
+                        </div>
+                        <div>
+                            <p class="font-bold text-golf-600" id="userHandicap">-</p>
+                            <p class="text-gray-500">Handicap</p>
+                        </div>
+                        <div>
+                            <p class="font-bold text-golf-600" id="userBestScore">-</p>
+                            <p class="text-gray-500">Best</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -253,6 +278,120 @@
                 </div>
                 <div id="courseListContainer" class="space-y-4">
                     <!-- Dynamic course list -->
+                </div>
+            </section>
+            
+            <!-- Profile Section -->
+            <section id="profileSection" class="hidden">
+                <!-- Profile Header -->
+                <div class="bg-gradient-to-br from-golf-600 to-golf-800 text-white px-4 py-6">
+                    <div class="flex items-center gap-4">
+                        <div id="profileAvatar" class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/30">
+                            U
+                        </div>
+                        <div class="flex-1">
+                            <h2 id="profileName" class="text-xl font-bold">User Name</h2>
+                            <p id="profileEmail" class="text-golf-200 text-sm">user@email.com</p>
+                            <p id="profileCity" class="text-golf-300 text-xs mt-1">📍 Indonesia</p>
+                        </div>
+                        <button onclick="showEditProfileModal()" class="p-2 bg-white/20 hover:bg-white/30 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Profile Stats -->
+                <div class="px-4 -mt-4 relative z-10">
+                    <div class="bg-white rounded-xl shadow-lg p-4 grid grid-cols-4 gap-2 text-center">
+                        <div>
+                            <p class="text-xl font-bold text-golf-600" id="profileTotalRounds">0</p>
+                            <p class="text-xs text-gray-500">Rounds</p>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold text-golf-600" id="profileHandicap">-</p>
+                            <p class="text-xs text-gray-500">HCP</p>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold text-golf-600" id="profileBestScore">-</p>
+                            <p class="text-xs text-gray-500">Best</p>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold text-golf-600" id="profileAvgScore">-</p>
+                            <p class="text-xs text-gray-500">Avg</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Profile Content -->
+                <div class="p-4 space-y-4">
+                    <!-- Golf Info -->
+                    <div class="bg-white rounded-xl card-shadow p-4">
+                        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <span>🏌️</span> Golf Info
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500 text-sm">Handicap Index</span>
+                                <span id="profileHandicapIndex" class="font-medium text-gray-800">Not set</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500 text-sm">Home Course</span>
+                                <span id="profileHomeCourse" class="font-medium text-gray-800 text-right max-w-[60%] truncate">Not set</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500 text-sm">Courses Played</span>
+                                <span id="profileCoursesPlayed" class="font-medium text-gray-800">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bio -->
+                    <div class="bg-white rounded-xl card-shadow p-4">
+                        <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            <span>📝</span> About Me
+                        </h3>
+                        <p id="profileBio" class="text-gray-600 text-sm">No bio yet. Tap edit to add one!</p>
+                    </div>
+                    
+                    <!-- Recent Games -->
+                    <div class="bg-white rounded-xl card-shadow p-4">
+                        <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <span>📊</span> Recent Games
+                        </h3>
+                        <div id="profileRecentGames" class="space-y-2">
+                            <p class="text-gray-500 text-sm text-center py-4">No games played yet</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Actions -->
+                    <div class="bg-white rounded-xl card-shadow p-4 space-y-3">
+                        <h3 class="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            <span>⚙️</span> Account
+                        </h3>
+                        <button onclick="showChangePasswordModal()" class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-gray-500">🔒</span>
+                                <span class="text-gray-700">Change Password</span>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <button onclick="handleLogout()" class="w-full flex items-center justify-between p-3 bg-red-50 rounded-xl hover:bg-red-100 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-red-500">🚪</span>
+                                <span class="text-red-600">Logout</span>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Member Since -->
+                    <p id="profileMemberSince" class="text-center text-gray-400 text-xs">Member since 2024</p>
                 </div>
             </section>
             
@@ -786,6 +925,103 @@
                             Reset Password
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Edit Profile Modal -->
+        <div id="editProfileModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-lg sm:rounded-xl rounded-t-3xl slide-up max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white px-6 pt-6 pb-4 border-b z-10">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">✏️ Edit Profile</h3>
+                        <button onclick="hideEditProfileModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <!-- Avatar Selection -->
+                    <div class="text-center">
+                        <div id="editProfileAvatar" class="w-20 h-20 bg-gradient-to-br from-golf-400 to-golf-600 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-2">
+                            U
+                        </div>
+                        <p class="text-xs text-gray-500">Avatar shows your name initial</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                        <input type="text" id="editProfileName" placeholder="Your full name" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input type="tel" id="editProfilePhone" placeholder="e.g., 08123456789" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                        <input type="text" id="editProfileCity" placeholder="e.g., Jakarta" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Handicap Index</label>
+                        <input type="number" id="editProfileHandicap" placeholder="e.g., 18.5" step="0.1" min="0" max="54"
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Home Course</label>
+                        <select id="editProfileHomeCourse" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
+                            <option value="">-- Select your home course --</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                        <textarea id="editProfileBio" rows="3" placeholder="Tell us about your golf journey..."
+                                  class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 resize-none"></textarea>
+                    </div>
+                    
+                    <button onclick="saveProfile()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Change Password Modal -->
+        <div id="changePasswordModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-3xl p-6 slide-up">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">🔒 Change Password</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                        <input type="password" id="currentPassword" placeholder="Enter current password" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <input type="password" id="newPassword" placeholder="Enter new password" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                        <input type="password" id="confirmNewPassword" placeholder="Confirm new password" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="hideChangePasswordModal()" class="flex-1 py-3 bg-gray-200 rounded-xl font-medium">Cancel</button>
+                    <button onclick="changePassword()" class="flex-1 py-3 btn-primary text-white rounded-xl font-medium">Change</button>
                 </div>
             </div>
         </div>
