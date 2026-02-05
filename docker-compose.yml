@@ -9,10 +9,8 @@ services:
       - DATABASE_URL=file:./prisma/dev.db
       - EVENTS_SERVICE_URL=http://golf-events:5001
       - EVENTS_SERVICE_API_KEY=golf-events-internal-key-2024
-      - SMTP_HOST=${SMTP_HOST:-}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-}
-      - SMTP_PASS=${SMTP_PASS:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-UGG-ITB Scorecard <OTP@ugg.my.id>}
     volumes:
       - golf-data:/app/prisma
     restart: unless-stopped

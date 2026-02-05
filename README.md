@@ -1,6 +1,6 @@
-# ⛳ Advanced Golf Scorecard Web
+# ⛳ Unit Ganesha Golf - Scorecard App
 
-A professional golf scorecard web application designed for **Indonesia golf courses**, following **USGA (United States Golf Association)** official rules.
+A professional golf scorecard web application for **Unit Ganesha Golf ITB**, following **USGA (United States Golf Association)** official rules.
 
 ![Mobile Responsive](https://img.shields.io/badge/Mobile-Responsive-green)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
@@ -10,14 +10,30 @@ A professional golf scorecard web application designed for **Indonesia golf cour
 
 ## ✨ Features
 
+### Core Features
 - 📝 **Stroke Play Scoring** - Score entry per hole with real-time calculation
 - 📊 **Score Analysis** - Automatic detection of Eagle, Birdie, Par, Bogey, etc.
 - 🎯 **USGA Handicap System** - Course handicap calculation per World Handicap System
 - 👥 **Multi-Player Support** - Up to 10 players per game
 - 📱 **Mobile-First Design** - Responsive UI optimized for mobile devices
-- 📄 **PDF Export** - Professional scorecard report generation
-- 📧 **Email Support** - Send scorecard via email (SMTP configuration required)
 - 🇮🇩 **Indonesia Golf Courses** - Pre-configured database of Indonesian courses
+
+### User Management
+- 🔐 **User Registration** - Email verification with OTP (ITB & Gmail domains only)
+- 👤 **User Profiles** - Username, Student ID, phone number
+- 🔑 **Secure Login** - Password with complexity requirements (8+ chars)
+
+### Game Features
+- 💾 **Autosave** - Game progress saved every 10 seconds
+- 🔄 **Session Resume** - Continue unfinished games after closing the app
+- 📸 **Photo Capture** - Required photo before downloading scorecard
+- 📄 **PDF Export** - Professional scorecard report generation
+- 📧 **Email Support** - Send scorecard via email (Resend API)
+
+### Social Features
+- 🏆 **Leaderboard** - Best scores ranking across all players
+- 📜 **Game History** - View past games and scores
+- 📅 **Events** - Golf events management (separate service)
 
 ---
 
@@ -97,12 +113,26 @@ open http://localhost:5000
 
 ### Environment Variables
 
-Database Configuration
+Create a `.env` file in the root directory:
+
+```env
+# Database Configuration
 DATABASE_URL="file:./prisma/dev.db"
 
-Resend API Configuration
-RESEND_API_KEY = 'XXXXXXXXXXXXXXXX'
-RESEND_FROM_EMAIL = 'XXXXXXXXXXXXXXXX'
+# Resend API Configuration (for OTP emails)
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=Your App Name <noreply@yourdomain.com>
+```
+
+### Docker Compose Environment
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FLASK_ENV` | Flask environment | `production` |
+| `DATABASE_URL` | SQLite database path | `file:./prisma/dev.db` |
+| `EVENTS_SERVICE_URL` | Events service URL | `http://golf-events:5001` |
+| `RESEND_API_KEY` | Resend API key for emails | Required |
+| `RESEND_FROM_EMAIL` | Sender email address | Required |
 
 ---
 
@@ -114,9 +144,24 @@ scorecard/
 ├── requirements.txt       # Python dependencies
 ├── Dockerfile            # Docker configuration
 ├── docker-compose.yml    # Docker Compose config
+├── .env                  # Environment variables (create from .env.example)
 ├── .dockerignore         # Docker ignore file
 ├── templates/
 │   └── index.html        # Mobile-responsive single-page app
+├── static/
+│   ├── css/
+│   │   └── styles.css    # Custom styles
+│   ├── js/
+│   │   ├── app.js        # Main application JavaScript
+│   │   └── sw.js         # Service worker for PWA
+│   ├── icons/            # App icons
+│   └── manifest.json     # PWA manifest
+├── prisma/
+│   └── schema.prisma     # Database schema
+├── events-service/       # Separate events microservice
+│   ├── app.py
+│   ├── Dockerfile
+│   └── requirements.txt
 ├── info/
 │   ├── calculation.md    # Scoring calculations reference
 │   ├── logic-flow.md     # Application flow documentation
@@ -201,4 +246,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-Made with ⛳ for golfers in Indonesia
+Made with ⛳ for **Unit Ganesha Golf ITB**
