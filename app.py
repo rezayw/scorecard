@@ -338,6 +338,45 @@ def init_db():
         )
     ''')
     
+    # Create UserScoreHistory table for user-specific history
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS UserScoreHistory (
+            id TEXT PRIMARY KEY,
+            userId TEXT NOT NULL,
+            courseName TEXT NOT NULL,
+            location TEXT NOT NULL,
+            holeCount INTEGER NOT NULL,
+            grossScore INTEGER NOT NULL,
+            netScore INTEGER NOT NULL,
+            vsPar INTEGER NOT NULL,
+            tee TEXT DEFAULT 'white',
+            handicapIndex REAL DEFAULT 0,
+            courseHandicap INTEGER DEFAULT 0,
+            playedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            scores TEXT,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+        )
+    ''')
+    
+    # Add scorePoints to User table if not exists (for leaderboard)
+    try:
+        cursor.execute('ALTER TABLE User ADD COLUMN scorePoints INTEGER DEFAULT 0')
+    except:
+        pass  # Column already exists
+    
+    # Add gamesPlayed to User table if not exists
+    try:
+        cursor.execute('ALTER TABLE User ADD COLUMN gamesPlayed INTEGER DEFAULT 0')
+    except:
+        pass  # Column already exists
+    
+    # Add avgScore to User table if not exists
+    try:
+        cursor.execute('ALTER TABLE User ADD COLUMN avgScore REAL')
+    except:
+        pass  # Column already exists
+    
     conn.commit()
     conn.close()
 
@@ -434,8 +473,9 @@ def get_otp_email_template(otp, otp_type='verify'):
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{title}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     </head>
-    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+    <body style="margin: 0; padding: 0; font-family: 'Bebas Neue', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
         <table role="presentation" style="width: 100%; border-collapse: collapse;">
             <tr>
                 <td align="center" style="padding: 40px 0;">
@@ -444,28 +484,28 @@ def get_otp_email_template(otp, otp_type='verify'):
                         <tr>
                             <td style="background: linear-gradient(135deg, #0A241C 0%, #0F3B2E 50%, #C9A84E 100%); padding: 40px 30px; text-align: center; border-radius: 16px 16px 0 0;">
                                 <div style="font-size: 48px; margin-bottom: 10px;">⛳</div>
-                                <h1 style="color: #F3F1EC; margin: 0; font-size: 28px; font-weight: bold;">Golf Scorecard</h1>
-                                <p style="color: #E6C36A; margin: 5px 0 0 0; font-size: 14px;">Indonesia Edition</p>
+                                <h1 style="color: #F3F1EC; margin: 0; font-size: 28px; font-weight: bold; font-family: 'Bebas Neue', sans-serif;">Golf Scorecard</h1>
+                                <p style="color: #E6C36A; margin: 5px 0 0 0; font-size: 14px; font-family: 'Bebas Neue', sans-serif;">Indonesia Edition</p>
                             </td>
                         </tr>
                         
                         <!-- Content -->
                         <tr>
                             <td style="padding: 40px 30px;">
-                                <h2 style="color: #0A241C; margin: 0 0 20px 0; font-size: 24px; text-align: center;">{title}</h2>
-                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center; margin: 0 0 30px 0;">
+                                <h2 style="color: #0A241C; margin: 0 0 20px 0; font-size: 24px; text-align: center; font-family: 'Bebas Neue', sans-serif;">{title}</h2>
+                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center; margin: 0 0 30px 0; font-family: 'Bebas Neue', sans-serif;">
                                     {message}
                                 </p>
                                 
                                 <!-- OTP Box -->
                                 <div style="background: linear-gradient(135deg, #F3F1EC 0%, #E8E4DA 100%); border: 2px solid #E6C36A; border-radius: 12px; padding: 30px; text-align: center; margin: 0 0 30px 0;">
-                                    <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px;">Your OTP Code</p>
-                                    <div style="font-size: 40px; font-weight: bold; color: #0A241C; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                    <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px; font-family: 'Bebas Neue', sans-serif;">Your OTP Code</p>
+                                    <div style="font-size: 40px; font-weight: bold; color: #0A241C; letter-spacing: 8px; font-family: 'Bebas Neue', 'Courier New', monospace;">
                                         {otp}
                                     </div>
                                 </div>
                                 
-                                <p style="color: #9ca3af; font-size: 14px; text-align: center; margin: 0;">
+                                <p style="color: #9ca3af; font-size: 14px; text-align: center; margin: 0; font-family: 'Bebas Neue', sans-serif;">
                                     ⏱️ This code will expire in <strong>5 minutes</strong>
                                 </p>
                             </td>
@@ -475,7 +515,7 @@ def get_otp_email_template(otp, otp_type='verify'):
                         <tr>
                             <td style="padding: 0 30px 30px 30px;">
                                 <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 0 8px 8px 0;">
-                                    <p style="color: #92400e; font-size: 13px; margin: 0;">
+                                    <p style="color: #92400e; font-size: 13px; margin: 0; font-family: 'Bebas Neue', sans-serif;">
                                         ⚠️ <strong>Security Notice:</strong> Never share this OTP with anyone. Our team will never ask for your OTP.
                                     </p>
                                 </div>
@@ -485,10 +525,10 @@ def get_otp_email_template(otp, otp_type='verify'):
                         <!-- Footer -->
                         <tr>
                             <td style="background-color: #f9fafb; padding: 25px 30px; text-align: center; border-radius: 0 0 16px 16px; border-top: 1px solid #e5e7eb;">
-                                <p style="color: #6b7280; font-size: 12px; margin: 0 0 10px 0;">
+                                <p style="color: #6b7280; font-size: 12px; margin: 0 0 10px 0; font-family: 'Bebas Neue', sans-serif;">
                                     🏌️ Track your scores across premium Indonesian golf courses
                                 </p>
-                                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+                                <p style="color: #9ca3af; font-size: 11px; margin: 0; font-family: 'Bebas Neue', sans-serif;">
                                     © 2026 Golf Scorecard Indonesia. All rights reserved.
                                 </p>
                             </td>
@@ -1479,7 +1519,7 @@ def save_game_to_db(course_id, course_name, location, hole_count, players):
         conn.close()
 
 
-def save_game_results(game_id, results, course_name, location, hole_count):
+def save_game_results(game_id, results, course_name, location, hole_count, user_id=None):
     """Save game results to database"""
     conn = get_db()
     cursor = conn.cursor()
@@ -1535,9 +1575,47 @@ def save_game_results(game_id, results, course_name, location, hole_count):
                 result['vs_par'],
                 json.dumps(result.get('scores', []))
             ))
+            
+            # Save to UserScoreHistory if user is logged in
+            if user_id:
+                user_history_id = generate_id()
+                cursor.execute('''
+                    INSERT INTO UserScoreHistory (id, userId, courseName, location, holeCount, grossScore, netScore, vsPar, tee, handicapIndex, courseHandicap, scores)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    user_history_id,
+                    user_id,
+                    course_name,
+                    location,
+                    hole_count,
+                    result['gross_score'],
+                    result['net_score'],
+                    result['vs_par'],
+                    result.get('tee', 'white'),
+                    float(result.get('handicap_index', 0)),
+                    result.get('course_handicap', 0),
+                    json.dumps(result.get('scores', []))
+                ))
+                
+                # Update user stats
+                cursor.execute('''
+                    UPDATE User SET 
+                        gamesPlayed = COALESCE(gamesPlayed, 0) + 1,
+                        avgScore = (SELECT AVG(grossScore) FROM UserScoreHistory WHERE userId = ?),
+                        bestScore = CASE 
+                            WHEN bestScore IS NULL OR ? < bestScore THEN ? 
+                            ELSE bestScore 
+                        END,
+                        totalRounds = COALESCE(totalRounds, 0) + 1,
+                        updatedAt = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (user_id, result['gross_score'], result['gross_score'], user_id))
+                break  # Only save once per user for multi-player games
         
         # Update game status
         cursor.execute("UPDATE Game SET status = 'completed' WHERE id = ?", (game_id,))
+        
+        conn.commit()
         
         conn.commit()
     
@@ -1593,6 +1671,201 @@ def get_game_history(limit=20):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# =====================================
+# Leaderboard API Routes
+# =====================================
+
+@app.route('/api/leaderboard')
+def get_leaderboard():
+    """Get global leaderboard of all users based on score points"""
+    limit = sanitize_integer(request.args.get('limit', 50), min_val=1, max_val=100, default=50)
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    try:
+        # Get users with their stats, ordered by average score (lower is better in golf)
+        # Use subquery to filter users who have played at least one game
+        cursor.execute('''
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                u.avatar,
+                u.city,
+                u.handicapIndex,
+                u.scorePoints,
+                u.gamesPlayed,
+                u.avgScore,
+                u.bestScore,
+                stats.bestGross,
+                stats.totalGames,
+                stats.avgGrossScore,
+                stats.totalPoints
+            FROM User u
+            INNER JOIN (
+                SELECT 
+                    userId,
+                    MIN(grossScore) as bestGross,
+                    COUNT(*) as totalGames,
+                    AVG(grossScore) as avgGrossScore,
+                    SUM(grossScore) as totalPoints
+                FROM UserScoreHistory
+                GROUP BY userId
+                HAVING COUNT(*) > 0
+            ) stats ON u.id = stats.userId
+            WHERE u.isVerified = 1
+            ORDER BY 
+                CASE WHEN stats.avgGrossScore IS NULL THEN 1 ELSE 0 END,
+                stats.avgGrossScore ASC,
+                stats.totalGames DESC
+            LIMIT ?
+        ''', (limit,))
+        
+        users = cursor.fetchall()
+        
+        leaderboard = []
+        for i, user in enumerate(users, 1):
+            leaderboard.append({
+                'rank': i,
+                'userId': user['id'],
+                'name': user['name'],
+                'avatar': user['avatar'],
+                'city': user['city'] or 'Indonesia',
+                'handicapIndex': user['handicapIndex'],
+                'gamesPlayed': user['totalGames'] or 0,
+                'avgScore': round(user['avgGrossScore'], 1) if user['avgGrossScore'] else None,
+                'bestScore': user['bestGross'] or user['bestScore'],
+                'totalPoints': user['totalPoints'] or 0
+            })
+        
+        return jsonify(leaderboard)
+    
+    finally:
+        conn.close()
+
+
+# =====================================
+# User History API Routes
+# =====================================
+
+@app.route('/api/user/history')
+@require_auth
+def get_user_history():
+    """Get current user's scorecard history"""
+    limit = sanitize_integer(request.args.get('limit', 50), min_val=1, max_val=100, default=50)
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT id, courseName, location, holeCount, grossScore, netScore, vsPar, 
+                   tee, handicapIndex, courseHandicap, playedAt, scores
+            FROM UserScoreHistory
+            WHERE userId = ?
+            ORDER BY playedAt DESC
+            LIMIT ?
+        ''', (session['user_id'], limit))
+        
+        history = []
+        for row in cursor.fetchall():
+            history.append({
+                'id': row['id'],
+                'courseName': row['courseName'],
+                'location': row['location'],
+                'holeCount': row['holeCount'],
+                'grossScore': row['grossScore'],
+                'netScore': row['netScore'],
+                'vsPar': row['vsPar'],
+                'tee': row['tee'],
+                'handicapIndex': row['handicapIndex'],
+                'courseHandicap': row['courseHandicap'],
+                'playedAt': row['playedAt'],
+                'scores': json.loads(row['scores']) if row['scores'] else []
+            })
+        
+        return jsonify(history)
+    
+    finally:
+        conn.close()
+
+
+@app.route('/api/user/history/<history_id>', methods=['DELETE'])
+@require_auth
+def delete_user_history(history_id):
+    """Delete a specific history entry for the current user"""
+    history_id = sanitize_id(history_id)
+    if not history_id:
+        return jsonify({'success': False, 'message': 'Invalid history ID'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        # Check if the history belongs to the current user
+        cursor.execute('SELECT id, grossScore FROM UserScoreHistory WHERE id = ? AND userId = ?', 
+                      (history_id, session['user_id']))
+        history = cursor.fetchone()
+        
+        if not history:
+            return jsonify({'success': False, 'message': 'History not found'}), 404
+        
+        # Delete the history entry
+        cursor.execute('DELETE FROM UserScoreHistory WHERE id = ?', (history_id,))
+        
+        # Update user stats
+        cursor.execute('''
+            UPDATE User SET 
+                gamesPlayed = COALESCE((SELECT COUNT(*) FROM UserScoreHistory WHERE userId = ?), 0),
+                avgScore = (SELECT AVG(grossScore) FROM UserScoreHistory WHERE userId = ?),
+                bestScore = (SELECT MIN(grossScore) FROM UserScoreHistory WHERE userId = ?)
+            WHERE id = ?
+        ''', (session['user_id'], session['user_id'], session['user_id'], session['user_id']))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'History deleted successfully'})
+    
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': 'Failed to delete history'}), 500
+    
+    finally:
+        conn.close()
+
+
+@app.route('/api/user/history', methods=['DELETE'])
+@require_auth
+def clear_all_user_history():
+    """Clear all history for the current user"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('DELETE FROM UserScoreHistory WHERE userId = ?', (session['user_id'],))
+        
+        # Reset user stats
+        cursor.execute('''
+            UPDATE User SET 
+                gamesPlayed = 0,
+                avgScore = NULL,
+                bestScore = NULL,
+                scorePoints = 0
+            WHERE id = ?
+        ''', (session['user_id'],))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'All history cleared'})
+    
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': 'Failed to clear history'}), 500
+    
+    finally:
+        conn.close()
 
 # =====================================
 # Authentication API Routes
@@ -2342,6 +2615,19 @@ def toggle_forum_like(post_id):
 
 # Events Service Proxy Routes
 EVENTS_SERVICE_URL = os.environ.get('EVENTS_SERVICE_URL', 'http://localhost:5001')
+EVENTS_SERVICE_API_KEY = os.environ.get('EVENTS_SERVICE_API_KEY', 'golf-events-internal-key-2024')
+
+def get_events_headers():
+    """Get headers for events service requests including API key and user info"""
+    headers = {
+        'X-API-Key': EVENTS_SERVICE_API_KEY,
+        'Content-Type': 'application/json'
+    }
+    if 'user_id' in session:
+        headers['X-User-Id'] = session['user_id']
+        headers['X-User-Email'] = session.get('email', '')
+        headers['X-User-Name'] = session.get('name', '')
+    return headers
 
 @app.route('/api/events', methods=['GET', 'POST'])
 def proxy_events():
@@ -2349,53 +2635,74 @@ def proxy_events():
         if request.method == 'GET':
             resp = requests.get(f'{EVENTS_SERVICE_URL}/api/events', params=request.args, timeout=10)
         else:
-            resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events', json=request.json, timeout=10)
-        return jsonify(resp.json()), resp.status_code
+            # POST requires authentication
+            if 'user_id' not in session:
+                return jsonify({'error': 'Authentication required to create events'}), 401
+            data = request.json or {}
+            data['createdBy'] = session.get('user_id')
+            data['createdByName'] = session.get('name', 'Anonymous')
+            resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events', json=data, headers=get_events_headers(), timeout=10)
+        return resp.json(), resp.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
 
-@app.route('/api/events/<int:event_id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/api/events/<event_id>', methods=['GET', 'PUT', 'DELETE'])
 def proxy_event_detail(event_id):
     try:
         if request.method == 'GET':
             resp = requests.get(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', timeout=10)
         elif request.method == 'PUT':
-            resp = requests.put(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', json=request.json, timeout=10)
+            # PUT requires authentication
+            if 'user_id' not in session:
+                return jsonify({'error': 'Authentication required to update events'}), 401
+            resp = requests.put(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', json=request.json, headers=get_events_headers(), timeout=10)
         else:
-            resp = requests.delete(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', timeout=10)
-        return jsonify(resp.json()), resp.status_code
+            # DELETE requires authentication
+            if 'user_id' not in session:
+                return jsonify({'error': 'Authentication required to delete events'}), 401
+            resp = requests.delete(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', headers=get_events_headers(), timeout=10)
+        return resp.json(), resp.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
 
-@app.route('/api/events/<int:event_id>/register', methods=['POST'])
+@app.route('/api/events/<event_id>/register', methods=['POST'])
 def proxy_event_register(event_id):
     try:
-        resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/register', json=request.json, timeout=10)
-        return jsonify(resp.json()), resp.status_code
+        # Registration requires authentication
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required to register for events'}), 401
+        data = request.json or {}
+        data['userId'] = session.get('user_id')
+        resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/register', json=data, headers=get_events_headers(), timeout=10)
+        return resp.json(), resp.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
 
-@app.route('/api/events/<int:event_id>/registrations', methods=['GET'])
+@app.route('/api/events/<event_id>/registrations', methods=['GET'])
 def proxy_event_registrations(event_id):
     try:
-        resp = requests.get(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/registrations', timeout=10)
-        return jsonify(resp.json()), resp.status_code
+        resp = requests.get(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/registrations', headers=get_events_headers(), timeout=10)
+        return resp.json(), resp.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
 
-@app.route('/api/events/<int:event_id>/cancel-registration', methods=['POST'])
+@app.route('/api/events/<event_id>/cancel-registration', methods=['POST'])
 def proxy_cancel_registration(event_id):
     try:
-        resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/cancel-registration', json=request.json, timeout=10)
-        return jsonify(resp.json()), resp.status_code
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+        data = request.json or {}
+        data['userId'] = session.get('user_id')
+        resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/cancel-registration', json=data, headers=get_events_headers(), timeout=10)
+        return resp.json(), resp.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
 
 @app.route('/api/event-templates', methods=['GET'])
 def proxy_event_templates():
     try:
-        resp = requests.get(f'{EVENTS_SERVICE_URL}/api/event-templates', timeout=10)
-        return jsonify(resp.json()), resp.status_code
+        resp = requests.get(f'{EVENTS_SERVICE_URL}/api/templates', timeout=10)
+        return resp.json(), resp.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
 
@@ -2591,12 +2898,15 @@ def calculate_scores():
     # Save results to database
     if game_id:
         try:
+            # Pass user_id if logged in to save to user history
+            current_user_id = session.get('user_id')
             save_game_results(
                 game_id, 
                 results, 
                 course['name'],
                 course['location'],
-                hole_count
+                hole_count,
+                user_id=current_user_id
             )
         except Exception as e:
             app.logger.error(f"Error saving results: {e}")

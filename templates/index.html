@@ -11,6 +11,11 @@
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <title>Golf Scorecard - Indonesia</title>
     
+    <!-- Google Fonts - Bebas Neue -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -33,7 +38,7 @@
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif']
+                        sans: ['Bebas Neue', 'sans-serif']
                     }
                 }
             }
@@ -124,11 +129,11 @@
             <div id="quickStatsCard" class="px-4 -mt-8 relative z-20">
                 <div class="bg-white rounded-2xl shadow-lg p-4 grid grid-cols-3 gap-4">
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-golf-600" id="statCourses">17</div>
+                        <div class="text-2xl font-bold text-golf-600" id="statCourses">51</div>
                         <div class="text-xs text-gray-500">Courses</div>
                     </div>
                     <div class="text-center border-x border-gray-100">
-                        <div class="text-2xl font-bold text-golf-600" id="statRegions">6</div>
+                        <div class="text-2xl font-bold text-golf-600" id="statRegions">16</div>
                         <div class="text-xs text-gray-500">Regions</div>
                     </div>
                     <div class="text-center">
@@ -193,6 +198,12 @@
                         </svg>
                         <span class="hidden sm:inline">History</span>
                     </button>
+                    <button onclick="showLeaderboard()" class="py-3 bg-yellow-100 text-yellow-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-yellow-200 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <span class="hidden sm:inline">Leaderboard</span>
+                    </button>
                     <button onclick="showCourseList()" class="py-3 bg-gray-100 text-gray-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-200 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -200,6 +211,8 @@
                         </svg>
                         <span class="hidden sm:inline">Courses</span>
                     </button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
                     <button onclick="showEvents()" class="py-3 bg-amber-100 text-amber-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-amber-200 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -595,13 +608,111 @@
             </section>
             
             <!-- History Section -->
-            <section id="historySection" class="hidden p-4">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">📜 Game History</h2>
-                    <button onclick="hideHistory()" class="text-golf-600 text-sm font-medium">Back</button>
+            <section id="historySection" class="hidden">
+                <!-- History Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold">📜 My History</h2>
+                            <p class="text-blue-100 text-xs">Your scorecard history</p>
+                        </div>
+                        <button onclick="confirmClearHistory()" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-full text-sm font-medium transition flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Clear All
+                        </button>
+                    </div>
                 </div>
-                <div id="historyContainer">
-                    <!-- Dynamic history -->
+                
+                <!-- History List -->
+                <div class="p-4" id="historyContainer">
+                    <div class="text-center py-8 text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>Loading history...</p>
+                    </div>
+                </div>
+                
+                <!-- Back Button -->
+                <div class="px-4 pb-4">
+                    <button onclick="showLanding()" class="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium">
+                        ← Back to Home
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Leaderboard Section -->
+            <section id="leaderboardSection" class="hidden">
+                <!-- Leaderboard Header -->
+                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold">🏆 Leaderboard</h2>
+                            <p class="text-yellow-100 text-xs">Top golfers ranked by average score</p>
+                        </div>
+                        <button onclick="refreshLeaderboard()" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-full text-sm font-medium transition flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Top 3 Podium -->
+                <div id="leaderboardPodium" class="px-4 py-6 bg-gradient-to-b from-yellow-50 to-white">
+                    <div class="flex items-end justify-center gap-4">
+                        <!-- 2nd Place -->
+                        <div class="flex flex-col items-center" id="podium2">
+                            <div class="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-xl font-bold text-white mb-2 border-4 border-gray-400">
+                                2
+                            </div>
+                            <div class="bg-gray-300 w-20 h-16 rounded-t-lg flex flex-col items-center justify-center text-center">
+                                <span class="text-xs font-semibold text-gray-700 truncate w-full px-1">-</span>
+                                <span class="text-xs text-gray-600">-</span>
+                            </div>
+                        </div>
+                        <!-- 1st Place -->
+                        <div class="flex flex-col items-center" id="podium1">
+                            <div class="text-2xl mb-1">👑</div>
+                            <div class="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-2 border-4 border-yellow-500 shadow-lg">
+                                1
+                            </div>
+                            <div class="bg-yellow-400 w-24 h-20 rounded-t-lg flex flex-col items-center justify-center text-center">
+                                <span class="text-xs font-bold text-yellow-900 truncate w-full px-1">-</span>
+                                <span class="text-xs text-yellow-800">-</span>
+                            </div>
+                        </div>
+                        <!-- 3rd Place -->
+                        <div class="flex flex-col items-center" id="podium3">
+                            <div class="w-14 h-14 bg-orange-300 rounded-full flex items-center justify-center text-lg font-bold text-white mb-2 border-4 border-orange-400">
+                                3
+                            </div>
+                            <div class="bg-orange-300 w-18 h-12 rounded-t-lg flex flex-col items-center justify-center text-center" style="width: 72px;">
+                                <span class="text-xs font-semibold text-orange-900 truncate w-full px-1">-</span>
+                                <span class="text-xs text-orange-800">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Leaderboard List -->
+                <div class="p-4 space-y-3" id="leaderboardContainer">
+                    <div class="text-center py-8 text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <p>Loading leaderboard...</p>
+                    </div>
+                </div>
+                
+                <!-- Back Button -->
+                <div class="px-4 pb-4">
+                    <button onclick="showLanding()" class="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium">
+                        ← Back to Home
+                    </button>
                 </div>
             </section>
             

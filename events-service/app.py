@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from functools import wraps
 from datetime import datetime, timedelta
 import sqlite3
 import secrets
@@ -15,6 +16,9 @@ app = Flask(__name__)
 # Configure CORS with specific origins in production
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
 CORS(app, origins=allowed_origins, supports_credentials=True)
+
+# API Key for internal service communication
+API_KEY = os.environ.get('EVENTS_SERVICE_API_KEY', 'golf-events-internal-key-2024')
 
 # Rate limiting
 limiter = Limiter(
@@ -31,6 +35,24 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     return response
+
+def require_api_key(f):
+    """Decorator to require API key for internal requests"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        if api_key != API_KEY:
+            return jsonify({'error': 'Unauthorized - Invalid API key'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def get_user_from_headers():
+    """Extract user info from headers set by main app"""
+    return {
+        'user_id': request.headers.get('X-User-Id'),
+        'email': request.headers.get('X-User-Email'),
+        'name': request.headers.get('X-User-Name')
+    }
 
 # =====================================
 # Input Validation & Sanitization
@@ -419,6 +441,7 @@ def get_event(event_id):
 
 @app.route('/api/events', methods=['POST'])
 @limiter.limit("10 per hour")
+@require_api_key
 def create_event():
     """Create a new event"""
     data = request.json or {}
@@ -491,6 +514,7 @@ def create_event():
     })
 
 @app.route('/api/events/<event_id>', methods=['PUT'])
+@require_api_key
 def update_event(event_id):
     """Update an event"""
     data = request.json
@@ -535,6 +559,7 @@ def update_event(event_id):
 
 @app.route('/api/events/<event_id>', methods=['DELETE'])
 @limiter.limit("10 per hour")
+@require_api_key
 def delete_event(event_id):
     """Delete an event"""
     # Sanitize event_id
@@ -562,6 +587,7 @@ def delete_event(event_id):
 
 @app.route('/api/events/<event_id>/register', methods=['POST'])
 @limiter.limit("20 per hour")
+@require_api_key
 def register_for_event(event_id):
     """Register for an event"""
     # Sanitize event_id
@@ -664,6 +690,46 @@ def cancel_registration(reg_id):
         return jsonify({'success': False, 'message': 'Registration not found'}), 404
     
     event_id = reg['eventId']
+    
+    cursor.execute('DELETE FROM EventRegistration WHERE id = ?', (reg_id,))
+    cursor.execute('UPDATE Event SET currentParticipants = currentParticipants - 1 WHERE id = ?', (event_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Registration cancelled'})
+
+@app.route('/api/events/<event_id>/cancel-registration', methods=['POST'])
+@require_api_key
+def cancel_event_registration(event_id):
+    """Cancel registration for an event by user ID or email"""
+    event_id = sanitize_id(event_id)
+    if not event_id:
+        return jsonify({'success': False, 'message': 'Invalid event ID'}), 400
+    
+    data = request.json or {}
+    user_id = sanitize_id(data.get('userId'))
+    email = sanitize_email_input(data.get('email', ''))
+    
+    if not user_id and not email:
+        return jsonify({'success': False, 'message': 'User ID or email required'}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Find the registration
+    if user_id:
+        cursor.execute('SELECT id FROM EventRegistration WHERE eventId = ? AND userId = ?', (event_id, user_id))
+    else:
+        cursor.execute('SELECT id FROM EventRegistration WHERE eventId = ? AND email = ?', (event_id, email))
+    
+    reg = cursor.fetchone()
+    
+    if not reg:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Registration not found'}), 404
+    
+    reg_id = reg['id']
     
     cursor.execute('DELETE FROM EventRegistration WHERE id = ?', (reg_id,))
     cursor.execute('UPDATE Event SET currentParticipants = currentParticipants - 1 WHERE id = ?', (event_id,))

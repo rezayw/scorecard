@@ -1849,6 +1849,9 @@ function showLanding() {
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
     document.getElementById('profileSection').classList.add('hidden');
+    document.getElementById('historySection').classList.add('hidden');
+    const leaderboardSection = document.getElementById('leaderboardSection');
+    if (leaderboardSection) leaderboardSection.classList.add('hidden');
     loadLandingStats();
 }
 
@@ -1864,6 +1867,9 @@ function showGameSetup() {
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
     document.getElementById('profileSection').classList.add('hidden');
+    document.getElementById('historySection').classList.add('hidden');
+    const leaderboardSection = document.getElementById('leaderboardSection');
+    if (leaderboardSection) leaderboardSection.classList.add('hidden');
     showStep(1);
 }
 
@@ -1879,6 +1885,9 @@ function showCourseList() {
     document.getElementById('eventsSection').classList.add('hidden');
     document.getElementById('eventDetailSection').classList.add('hidden');
     document.getElementById('profileSection').classList.add('hidden');
+    document.getElementById('historySection').classList.add('hidden');
+    const leaderboardSection = document.getElementById('leaderboardSection');
+    if (leaderboardSection) leaderboardSection.classList.add('hidden');
     hideAllSteps();
     renderCourseList();
 }
@@ -1961,16 +1970,6 @@ async function fetchCourses() {
     } catch (error) {
         showToast('Failed to load courses. Please refresh.');
         console.error(error);
-    }
-}
-
-async function loadHistory() {
-    try {
-        const response = await fetch('/api/games/history');
-        const history = await response.json();
-        renderHistory(history);
-    } catch (error) {
-        console.error('Failed to load history:', error);
     }
 }
 
@@ -2476,6 +2475,155 @@ function toggleScorecard() {
 // History Functions
 // =====================================
 
+async function loadHistory() {
+    try {
+        const response = await fetch('/api/user/history');
+        if (response.ok) {
+            const history = await response.json();
+            renderUserHistory(history);
+        } else {
+            // Fallback to old API for non-logged in users
+            const oldResponse = await fetch('/api/games/history');
+            const history = await oldResponse.json();
+            renderHistory(history);
+        }
+    } catch (error) {
+        console.error('Failed to load history:', error);
+        document.getElementById('historyContainer').innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <span class="text-4xl">❌</span>
+                <p class="mt-2">Failed to load history</p>
+            </div>
+        `;
+    }
+}
+
+function renderUserHistory(history) {
+    const container = document.getElementById('historyContainer');
+    if (!container) return;
+    
+    if (!history || history.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <span class="text-4xl">📋</span>
+                <p class="mt-2">No games played yet</p>
+                <p class="text-sm mt-1">Start a game to see your history here!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = history.map(game => `
+        <div class="history-card bg-white rounded-xl card-shadow p-4 mb-3" data-history-id="${game.id}">
+            <div class="flex items-start justify-between mb-2">
+                <div class="flex-1">
+                    <h4 class="font-semibold text-gray-800">${game.courseName}</h4>
+                    <p class="text-sm text-gray-600">${game.location}</p>
+                </div>
+                <button onclick="confirmDeleteHistory('${game.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full transition" title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </div>
+            <div class="flex items-center gap-4 text-sm mb-3">
+                <span class="text-gray-500">📅 ${formatDate(game.playedAt)}</span>
+                <span class="text-gray-500">⛳ ${game.holeCount} Holes</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg">
+                <div class="text-center">
+                    <p class="text-lg font-bold text-golf-600">${game.grossScore}</p>
+                    <p class="text-xs text-gray-500">Gross</p>
+                </div>
+                <div class="text-center border-x border-gray-200">
+                    <p class="text-lg font-bold text-blue-600">${game.netScore}</p>
+                    <p class="text-xs text-gray-500">Net</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-lg font-bold ${game.vsPar > 0 ? 'text-red-500' : game.vsPar < 0 ? 'text-green-500' : 'text-gray-600'}">
+                        ${game.vsPar > 0 ? '+' : ''}${game.vsPar}
+                    </p>
+                    <p class="text-xs text-gray-500">vs Par</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 mt-3 text-xs text-gray-500">
+                <span class="px-2 py-1 bg-${getTeeColorClass(game.tee)}-100 text-${getTeeColorClass(game.tee)}-700 rounded-full">${game.tee?.toUpperCase() || 'WHITE'} Tee</span>
+                ${game.handicapIndex ? `<span class="px-2 py-1 bg-gray-100 rounded-full">HCP: ${game.handicapIndex}</span>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function getTeeColorClass(tee) {
+    const colors = {
+        'black': 'gray',
+        'blue': 'blue',
+        'white': 'gray',
+        'red': 'red'
+    };
+    return colors[tee?.toLowerCase()] || 'gray';
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+async function confirmDeleteHistory(historyId) {
+    if (confirm('Are you sure you want to delete this history entry?')) {
+        await deleteHistory(historyId);
+    }
+}
+
+async function deleteHistory(historyId) {
+    showLoading(true);
+    try {
+        const response = await fetch(`/api/user/history/${historyId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showToast('History deleted successfully');
+            loadHistory();  // Refresh the list
+        } else {
+            const data = await response.json();
+            showToast(data.message || 'Failed to delete history');
+        }
+    } catch (error) {
+        console.error('Failed to delete history:', error);
+        showToast('Failed to delete history');
+    }
+    showLoading(false);
+}
+
+async function confirmClearHistory() {
+    if (confirm('Are you sure you want to clear ALL your history? This action cannot be undone.')) {
+        await clearAllHistory();
+    }
+}
+
+async function clearAllHistory() {
+    showLoading(true);
+    try {
+        const response = await fetch('/api/user/history', {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showToast('All history cleared');
+            loadHistory();  // Refresh the list
+        } else {
+            const data = await response.json();
+            showToast(data.message || 'Failed to clear history');
+        }
+    } catch (error) {
+        console.error('Failed to clear history:', error);
+        showToast('Failed to clear history');
+    }
+    showLoading(false);
+}
+
 function renderHistory(history) {
     const container = document.getElementById('historyContainer');
     if (!container) return;
@@ -2521,6 +2669,9 @@ function showHistory() {
     document.getElementById('eventDetailSection').classList.add('hidden');
     document.getElementById('profileSection').classList.add('hidden');
     
+    const leaderboardSection = document.getElementById('leaderboardSection');
+    if (leaderboardSection) leaderboardSection.classList.add('hidden');
+    
     document.getElementById('step1').classList.add('hidden');
     document.getElementById('step2').classList.add('hidden');
     document.getElementById('step3').classList.add('hidden');
@@ -2533,6 +2684,146 @@ function hideHistory() {
     showLanding();
 }
 
+// =====================================
+// Leaderboard Functions
+// =====================================
+
+let leaderboardData = [];
+
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/api/leaderboard');
+        if (response.ok) {
+            leaderboardData = await response.json();
+            renderLeaderboard(leaderboardData);
+        }
+    } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+        document.getElementById('leaderboardContainer').innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <span class="text-4xl">❌</span>
+                <p class="mt-2">Failed to load leaderboard</p>
+            </div>
+        `;
+    }
+}
+
+function renderLeaderboard(leaderboard) {
+    const container = document.getElementById('leaderboardContainer');
+    const podium1 = document.getElementById('podium1');
+    const podium2 = document.getElementById('podium2');
+    const podium3 = document.getElementById('podium3');
+    
+    if (!container) return;
+    
+    if (!leaderboard || leaderboard.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <span class="text-4xl">🏆</span>
+                <p class="mt-2">No players on the leaderboard yet</p>
+                <p class="text-sm mt-1">Play games to appear on the leaderboard!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Update podium
+    if (leaderboard[0]) {
+        updatePodiumPosition(podium1, leaderboard[0], 1);
+    }
+    if (leaderboard[1]) {
+        updatePodiumPosition(podium2, leaderboard[1], 2);
+    }
+    if (leaderboard[2]) {
+        updatePodiumPosition(podium3, leaderboard[2], 3);
+    }
+    
+    // Render list (starting from 4th place)
+    const restOfLeaderboard = leaderboard.slice(3);
+    
+    if (restOfLeaderboard.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-4 text-sm">
+                More players will appear here...
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = restOfLeaderboard.map(player => `
+        <div class="leaderboard-card bg-white rounded-xl card-shadow p-4 flex items-center gap-4">
+            <div class="w-10 h-10 flex items-center justify-center font-bold ${player.rank <= 10 ? 'text-yellow-600' : 'text-gray-500'}">
+                #${player.rank}
+            </div>
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-golf-400 to-golf-600 flex items-center justify-center text-white font-bold text-lg overflow-hidden">
+                ${player.avatar ? `<img src="${player.avatar}" class="w-full h-full object-cover" alt="${player.name}">` : getInitials(player.name)}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-800 truncate">${player.name}</h4>
+                <p class="text-xs text-gray-500">📍 ${player.city || 'Indonesia'} • ${player.gamesPlayed} games</p>
+            </div>
+            <div class="text-right">
+                <p class="text-lg font-bold text-golf-600">${player.avgScore ? player.avgScore.toFixed(1) : '-'}</p>
+                <p class="text-xs text-gray-500">Avg Score</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updatePodiumPosition(element, player, position) {
+    if (!element || !player) return;
+    
+    const avatarEl = element.querySelector('.rounded-full');
+    const nameEl = element.querySelector('.font-semibold, .font-bold');
+    const scoreEl = element.querySelectorAll('span')[1];
+    
+    if (avatarEl) {
+        if (player.avatar) {
+            avatarEl.innerHTML = `<img src="${player.avatar}" class="w-full h-full object-cover rounded-full" alt="${player.name}">`;
+        } else {
+            avatarEl.textContent = getInitials(player.name);
+        }
+    }
+    
+    if (nameEl) {
+        nameEl.textContent = player.name?.split(' ')[0] || '-';
+        nameEl.title = player.name;
+    }
+    
+    if (scoreEl) {
+        scoreEl.textContent = player.avgScore ? `Avg: ${player.avgScore.toFixed(1)}` : '-';
+    }
+}
+
+function getInitials(name) {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function showLeaderboard() {
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('courseListSection').classList.add('hidden');
+    document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.add('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
+    document.getElementById('historySection').classList.add('hidden');
+    
+    document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('step3').classList.add('hidden');
+    document.getElementById('leaderboardSection').classList.remove('hidden');
+    loadLeaderboard();
+}
+
+function refreshLeaderboard() {
+    loadLeaderboard();
+    showToast('Leaderboard refreshed');
+}
+
 function showStep(stepNum) {
     document.getElementById('step1').classList.add('hidden');
     document.getElementById('step2').classList.add('hidden');
@@ -2542,6 +2833,11 @@ function showStep(stepNum) {
     const historySection = document.getElementById('historySection');
     if (historySection) {
         historySection.classList.add('hidden');
+    }
+    
+    const leaderboardSection = document.getElementById('leaderboardSection');
+    if (leaderboardSection) {
+        leaderboardSection.classList.add('hidden');
     }
     
     document.getElementById(`step${stepNum}`).classList.remove('hidden');
