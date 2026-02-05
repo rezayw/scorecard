@@ -5,6 +5,7 @@ A professional golf scorecard web application for **Unit Ganesha Golf ITB**, fol
 ![Mobile Responsive](https://img.shields.io/badge/Mobile-Responsive-green)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
+![Flask](https://img.shields.io/badge/Flask-3.0-red)
 
 ---
 
@@ -15,13 +16,16 @@ A professional golf scorecard web application for **Unit Ganesha Golf ITB**, fol
 - 📊 **Score Analysis** - Automatic detection of Eagle, Birdie, Par, Bogey, etc.
 - 🎯 **USGA Handicap System** - Course handicap calculation per World Handicap System
 - 👥 **Multi-Player Support** - Up to 10 players per game
-- 📱 **Mobile-First Design** - Responsive UI optimized for mobile devices
+- 📱 **Mobile-First PWA** - Progressive Web App optimized for mobile devices
 - 🇮🇩 **Indonesia Golf Courses** - Pre-configured database of Indonesian courses
 
 ### User Management
 - 🔐 **User Registration** - Email verification with OTP (ITB & Gmail domains only)
-- 👤 **User Profiles** - Username, Student ID, phone number
-- 🔑 **Secure Login** - Password with complexity requirements (8+ chars)
+- 👤 **User Profiles** - Username, Student ID, phone number, avatar, bio
+- 🚻 **Gender Selection** - Male/Female option during registration
+- 🔑 **Secure Login** - Password with complexity requirements + OTP verification
+- 🔄 **Password Reset** - Forgot password with email OTP verification
+- ❌ **Account Deletion** - Full data removal with confirmation
 
 ### Game Features
 - 💾 **Autosave** - Game progress saved every 10 seconds
@@ -31,9 +35,10 @@ A professional golf scorecard web application for **Unit Ganesha Golf ITB**, fol
 - 📧 **Email Support** - Send scorecard via email (Resend API)
 
 ### Social Features
+- 💬 **Forum** - Community posts with categories, comments, and likes
 - 🏆 **Leaderboard** - Best scores ranking across all players
 - 📜 **Game History** - View past games and scores
-- 📅 **Events** - Golf events management (separate service)
+- 📅 **Events** - Golf events management (separate microservice)
 
 ---
 
@@ -52,15 +57,19 @@ A professional golf scorecard web application for **Unit Ganesha Golf ITB**, fol
 
 ## 🚀 Quick Start
 
-### Option 1: Docker (Recommended)
+### Option 1: Docker Compose (Recommended)
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd scorecard
 
+# Create .env file with required variables
+cp .env.example .env
+# Edit .env with your RESEND_API_KEY
+
 # Build and run with Docker Compose
-docker-compose up -d
+docker-compose up -d --build
 
 # Access the app
 open http://localhost:5000
@@ -73,7 +82,10 @@ open http://localhost:5000
 docker build -t golf-scorecard .
 
 # Run the container
-docker run -d -p 5000:5000 --name golf-scorecard golf-scorecard
+docker run -d -p 5000:5000 \
+  -e SECRET_KEY=your-secret-key \
+  -e RESEND_API_KEY=your-resend-key \
+  --name golf-scorecard golf-scorecard
 ```
 
 ### Option 3: Local Development
@@ -113,26 +125,28 @@ open http://localhost:5000
 
 ### Environment Variables
 
-Create a `.env` file in the root directory:
-
-```env
-# Database Configuration
-DATABASE_URL="file:./prisma/dev.db"
-
-# Resend API Configuration (for OTP emails)
-RESEND_API_KEY=your_resend_api_key
-RESEND_FROM_EMAIL=Your App Name <noreply@yourdomain.com>
-```
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `SECRET_KEY` | Flask session secret key | **Yes** | Random (not persistent!) |
+| `RESEND_API_KEY` | Resend API key for OTP emails | **Yes** | - |
+| `DATABASE_URL` | SQLite database path | No | `file:./prisma/dev.db` |
+| `EVENTS_SERVICE_URL` | Events microservice URL | No | `http://golf-events:5001` |
+| `RESEND_FROM_EMAIL` | Sender email address | No | `UGG-ITB Scorecard <OTP@ugg.my.id>` |
 
 ### Docker Compose Environment
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `FLASK_ENV` | Flask environment | `production` |
-| `DATABASE_URL` | SQLite database path | `file:./prisma/dev.db` |
-| `EVENTS_SERVICE_URL` | Events service URL | `http://golf-events:5001` |
-| `RESEND_API_KEY` | Resend API key for emails | Required |
-| `RESEND_FROM_EMAIL` | Sender email address | Required |
+Create a `.env` file in the root directory:
+
+```env
+# Required
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+
+# Optional (override defaults)
+SECRET_KEY=your-secure-secret-key-here
+RESEND_FROM_EMAIL=Your App <noreply@yourdomain.com>
+```
+
+> ⚠️ **Important:** Always set `SECRET_KEY` in production to ensure session persistence across container restarts.
 
 ---
 
@@ -200,31 +214,74 @@ Course Handicap = Handicap Index × (Slope Rating / 113) + (Course Rating - Par)
 
 ---
 
+## �️ Database Schema
+
+### Main Tables
+
+| Table | Description |
+|-------|-------------|
+| `User` | User accounts with email, password, profile info, gender |
+| `Player` | Game players (linked to games) |
+| `Course` | Golf courses with tee configurations |
+| `Game` | Game sessions |
+| `GameResult` | Player scores per game |
+| `ScoreHistory` | Historical scores for leaderboard |
+| `UserScoreHistory` | User-specific score history |
+| `OTP` | One-time passwords for auth |
+| `ForumPost` | Forum posts with categories |
+| `ForumComment` | Comments on posts |
+| `ForumLike` | Post likes |
+
+---
+
 ## 🛠️ Tech Stack
 
-- **Backend:** Python 3.11, Flask 3.0
-- **Frontend:** HTML5, Tailwind CSS (CDN), Vanilla JavaScript
-- **PDF Generation:** ReportLab
-- **Production Server:** Gunicorn
-- **Container:** Docker & Docker Compose
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Python 3.11, Flask 3.0, Gunicorn |
+| **Frontend** | HTML5, Tailwind CSS (CDN), Vanilla JavaScript |
+| **Database** | SQLite3 |
+| **PDF Generation** | ReportLab |
+| **Email** | Resend API |
+| **Container** | Docker & Docker Compose |
+| **PWA** | Service Worker, Web Manifest |
 
 ---
 
 ## 🐳 Docker Commands
 
 ```bash
-# Build and start
+# Build and start (with logs)
 docker-compose up -d --build
 
 # View logs
-docker-compose logs -f
+docker-compose logs -f golf-scorecard
 
-# Stop
+# View events service logs
+docker-compose logs -f golf-events
+
+# Stop all services
 docker-compose down
 
-# Restart
+# Restart services
 docker-compose restart
+
+# Rebuild without cache
+docker-compose build --no-cache
+
+# Check container status
+docker-compose ps
 ```
+
+---
+
+## 🔐 Security Features
+
+- **Password Requirements**: 8+ characters with uppercase, lowercase, and numbers
+- **OTP Verification**: Email-based one-time passwords for login and registration
+- **Session Security**: Secure session cookies with configurable secret key
+- **Rate Limiting**: API endpoints protected against abuse
+- **Input Sanitization**: XSS protection on all user inputs
 
 ---
 
