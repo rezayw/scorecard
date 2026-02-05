@@ -1870,12 +1870,12 @@ function renderForumPosts(posts) {
     };
     
     container.innerHTML = posts.map(post => {
-        const displayName = post.username ? `@${post.username}` : post.userName;
-        const studentIdBadge = post.studentId ? `<span class="text-xs text-gray-400">(${post.studentId})</span>` : '';
+        const displayName = post.userUsername ? `@${post.userUsername}` : post.userName;
+        const studentIdBadge = post.userStudentId ? `<span class="text-xs text-gray-400">(${post.userStudentId})</span>` : '';
         const avatarHtml = post.userAvatar 
             ? `<img src="${post.userAvatar}" alt="${displayName}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">`
             : `<div class="w-10 h-10 bg-golf-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span class="text-lg">${(post.username || post.userName || '?').charAt(0).toUpperCase()}</span>
+                    <span class="text-lg">${(post.userUsername || post.userName || '?').charAt(0).toUpperCase()}</span>
                </div>`;
         
         return `
@@ -2055,12 +2055,12 @@ function renderPostDetail(post) {
         'equipment': '🏌️'
     };
     
-    const displayName = post.username ? `@${post.username}` : post.userName;
-    const studentIdBadge = post.studentId ? `<span class="text-xs text-gray-400">(${post.studentId})</span>` : '';
+    const displayName = post.userUsername ? `@${post.userUsername}` : post.userName;
+    const studentIdBadge = post.userStudentId ? `<span class="text-xs text-gray-400">(${post.userStudentId})</span>` : '';
     const avatarHtml = post.userAvatar 
         ? `<img src="${post.userAvatar}" alt="${displayName}" class="w-12 h-12 rounded-full object-cover">`
         : `<div class="w-12 h-12 bg-golf-100 rounded-full flex items-center justify-center">
-                <span class="text-xl">${(post.username || post.userName || '?').charAt(0).toUpperCase()}</span>
+                <span class="text-xl">${(post.userUsername || post.userName || '?').charAt(0).toUpperCase()}</span>
            </div>`;
     
     const container = document.getElementById('viewPostContent');
@@ -2101,12 +2101,12 @@ function renderPostDetail(post) {
             <h3 class="font-semibold text-gray-800 mb-3">Comments</h3>
             <div id="commentsContainer" class="space-y-3">
                 ${post.comments && post.comments.length > 0 ? post.comments.map(comment => {
-                    const commentDisplayName = comment.username ? `@${comment.username}` : comment.userName;
-                    const commentStudentId = comment.studentId ? `<span class="text-xs text-gray-400">(${comment.studentId})</span>` : '';
+                    const commentDisplayName = comment.userUsername ? `@${comment.userUsername}` : comment.userName;
+                    const commentStudentId = comment.userStudentId ? `<span class="text-xs text-gray-400">(${comment.userStudentId})</span>` : '';
                     const commentAvatarHtml = comment.userAvatar 
                         ? `<img src="${comment.userAvatar}" alt="${commentDisplayName}" class="w-6 h-6 rounded-full object-cover">`
                         : `<div class="w-6 h-6 bg-golf-200 rounded-full flex items-center justify-center text-xs font-medium">
-                                ${(comment.username || comment.userName || '?').charAt(0).toUpperCase()}
+                                ${(comment.userUsername || comment.userName || '?').charAt(0).toUpperCase()}
                            </div>`;
                     return `
                     <div class="bg-gray-50 rounded-xl p-3">
@@ -2116,7 +2116,7 @@ function renderPostDetail(post) {
                             ${commentStudentId}
                             <span class="text-xs text-gray-400">${formatTimeAgo(comment.createdAt)}</span>
                         </div>
-                        <p class="text-gray-600 text-sm pl-8">${escapeHtml(comment.content)}</p>
+                        <p class="text-gray-600 text-sm pl-8">${formatCommentWithMentions(escapeHtml(comment.content))}</p>
                     </div>
                 `}).join('') : '<p class="text-gray-400 text-sm text-center py-4">No comments yet. Be the first to comment!</p>'}
             </div>
@@ -2198,16 +2198,24 @@ async function submitComment() {
             const noComments = commentsContainer.querySelector('p.text-center');
             if (noComments) noComments.remove();
             
+            const comment = data.comment;
+            const commentDisplayName = comment.userUsername ? `@${comment.userUsername}` : comment.userName;
+            const commentStudentId = comment.userStudentId ? `<span class="text-xs text-gray-400">(${comment.userStudentId})</span>` : '';
+            const commentAvatarHtml = comment.userAvatar 
+                ? `<img src="${comment.userAvatar}" alt="${commentDisplayName}" class="w-6 h-6 rounded-full object-cover">`
+                : `<div class="w-6 h-6 bg-golf-200 rounded-full flex items-center justify-center text-xs font-medium">
+                        ${(comment.userUsername || comment.userName || '?').charAt(0).toUpperCase()}
+                   </div>`;
+            
             const commentHtml = `
                 <div class="bg-gray-50 rounded-xl p-3 slide-up">
-                    <div class="flex items-center gap-2 mb-1">
-                        <div class="w-6 h-6 bg-golf-200 rounded-full flex items-center justify-center text-xs font-medium">
-                            ${data.comment.userName.charAt(0).toUpperCase()}
-                        </div>
-                        <span class="font-medium text-sm text-gray-800">${data.comment.userName}</span>
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        ${commentAvatarHtml}
+                        <span class="font-medium text-sm text-gray-800">${commentDisplayName}</span>
+                        ${commentStudentId}
                         <span class="text-xs text-gray-400">just now</span>
                     </div>
-                    <p class="text-gray-600 text-sm pl-8">${escapeHtml(data.comment.content)}</p>
+                    <p class="text-gray-600 text-sm pl-8">${formatCommentWithMentions(escapeHtml(comment.content))}</p>
                 </div>
             `;
             commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
@@ -2252,6 +2260,16 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function formatCommentWithMentions(text) {
+    // Convert @username mentions to styled links
+    return text.replace(/@(\w+)/g, '<span class="text-golf-600 font-medium cursor-pointer hover:underline" onclick="searchUserByUsername(\'$1\')">@$1</span>');
+}
+
+function searchUserByUsername(username) {
+    // For now just show a toast - could expand to show user profile
+    showToast(`Looking for @${username}`);
 }
 
 // =====================================

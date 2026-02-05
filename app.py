@@ -2475,7 +2475,9 @@ def get_forum_posts():
     
     if category and category != 'all':
         cursor.execute('''
-            SELECT fp.*, u.username, u.studentId, u.avatar as userAvatar
+            SELECT fp.id, fp.userId, fp.userName, fp.title, fp.content, fp.category,
+                   fp.image, fp.likes, fp.commentCount, fp.createdAt, fp.updatedAt,
+                   u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
             FROM ForumPost fp
             LEFT JOIN User u ON fp.userId = u.id
             WHERE fp.category = ? 
@@ -2483,7 +2485,9 @@ def get_forum_posts():
         ''', (category,))
     else:
         cursor.execute('''
-            SELECT fp.*, u.username, u.studentId, u.avatar as userAvatar
+            SELECT fp.id, fp.userId, fp.userName, fp.title, fp.content, fp.category,
+                   fp.image, fp.likes, fp.commentCount, fp.createdAt, fp.updatedAt,
+                   u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
             FROM ForumPost fp
             LEFT JOIN User u ON fp.userId = u.id
             ORDER BY fp.createdAt DESC
@@ -2563,7 +2567,9 @@ def get_forum_post(post_id):
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT fp.*, u.username, u.studentId, u.avatar as userAvatar
+        SELECT fp.id, fp.userId, fp.userName, fp.title, fp.content, fp.category,
+               fp.image, fp.likes, fp.commentCount, fp.createdAt, fp.updatedAt,
+               u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
         FROM ForumPost fp
         LEFT JOIN User u ON fp.userId = u.id
         WHERE fp.id = ?
@@ -2578,7 +2584,8 @@ def get_forum_post(post_id):
     
     # Get comments with user info
     cursor.execute('''
-        SELECT fc.*, u.username, u.studentId, u.avatar as userAvatar
+        SELECT fc.id, fc.postId, fc.userId, fc.userName, fc.content, fc.createdAt,
+               u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
         FROM ForumComment fc
         LEFT JOIN User u ON fc.userId = u.id
         WHERE fc.postId = ? 
@@ -2664,6 +2671,11 @@ def add_forum_comment(post_id):
     conn.commit()
     conn.close()
     
+    # Get user info for the comment response
+    cursor = conn.cursor()
+    cursor.execute('SELECT username, studentId, avatar FROM User WHERE id = ?', (session['user_id'],))
+    user_info = cursor.fetchone()
+    
     return jsonify({
         'success': True,
         'message': 'Comment added',
@@ -2671,6 +2683,9 @@ def add_forum_comment(post_id):
             'id': comment_id,
             'content': content,
             'userName': sanitize_name(session['user_name']),
+            'userUsername': user_info[0] if user_info else None,
+            'userStudentId': user_info[1] if user_info else None,
+            'userAvatar': user_info[2] if user_info else None,
             'createdAt': datetime.now().isoformat()
         }
     })
