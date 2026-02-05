@@ -428,6 +428,12 @@ def init_db():
     except:
         pass  # Column already exists
     
+    # Add gender to User table if not exists
+    try:
+        cursor.execute("ALTER TABLE User ADD COLUMN gender TEXT DEFAULT ''")
+    except:
+        pass  # Column already exists
+    
     conn.commit()
     conn.close()
 
@@ -1935,6 +1941,7 @@ def register():
     username = sanitize_username(data.get('username', ''))
     student_id = sanitize_student_id(data.get('studentId', ''))
     phone = sanitize_phone(data.get('phone', ''))
+    gender = data.get('gender', '').lower()
     
     if not email:
         return jsonify({'success': False, 'message': 'Valid email is required'}), 400
@@ -1954,6 +1961,10 @@ def register():
     
     if not phone:
         return jsonify({'success': False, 'message': 'Phone number is required'}), 400
+    
+    # Validate gender
+    if gender not in ('male', 'female'):
+        return jsonify({'success': False, 'message': 'Please select a valid gender'}), 400
     
     # Validate phone format (10-15 digits)
     phone_clean = re.sub(r'[\s\-()]', '', phone)
@@ -1987,15 +1998,15 @@ def register():
             else:
                 # User exists but not verified, update and resend OTP
                 cursor.execute('''
-                    UPDATE User SET password = ?, name = ?, username = ?, studentId = ?, phone = ?, updatedAt = ? WHERE email = ?
-                ''', (hash_password(password), name, username, student_id, phone, datetime.now(), email))
+                    UPDATE User SET password = ?, name = ?, username = ?, studentId = ?, phone = ?, gender = ?, updatedAt = ? WHERE email = ?
+                ''', (hash_password(password), name, username, student_id, phone, gender, datetime.now(), email))
                 conn.commit()
         else:
             # Create new user
             user_id = secrets.token_hex(16)
             cursor.execute('''
-                INSERT INTO User (id, email, password, name, username, studentId, phone) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, email, hash_password(password), name, username, student_id, phone))
+                INSERT INTO User (id, email, password, name, username, studentId, phone, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, email, hash_password(password), name, username, student_id, phone, gender))
             conn.commit()
         
         conn.close()

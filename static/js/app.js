@@ -490,11 +490,12 @@ async function handleRegister() {
     const studentId = document.getElementById('registerStudentId').value.trim().toUpperCase();
     const email = document.getElementById('registerEmail').value.trim().toLowerCase();
     const phone = document.getElementById('registerPhone').value.trim();
+    const gender = document.getElementById('registerGender').value;
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
     
     // Validate required fields
-    if (!name || !username || !studentId || !email || !phone || !password) {
+    if (!name || !username || !studentId || !email || !phone || !gender || !password) {
         showToast('Please fill in all required fields');
         return;
     }
@@ -548,7 +549,7 @@ async function handleRegister() {
         const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, username, studentId, email, phone, password })
+            body: JSON.stringify({ name, username, studentId, email, phone, gender, password })
         });
         
         const data = await response.json();
@@ -2554,6 +2555,9 @@ function updatePlayerInputs() {
             <div class="flex items-center gap-2 mb-2">
                 <span class="w-8 h-8 bg-golf-500 text-white rounded-full flex items-center justify-center text-sm font-bold">${i + 1}</span>
                 <input type="text" 
+                       id="playerName${i}"
+                       name="playerName${i}"
+                       aria-label="Player ${i + 1} name"
                        class="player-name flex-1 p-2 border border-gray-200 rounded-lg focus:border-golf-500 focus:ring-0" 
                        placeholder="Player ${i + 1} name" 
                        value="${existingPlayer.name || ''}"
@@ -2562,6 +2566,9 @@ function updatePlayerInputs() {
             </div>
             <div class="mb-2">
                 <input type="email" 
+                       id="playerEmail${i}"
+                       name="playerEmail${i}"
+                       aria-label="Player ${i + 1} email"
                        class="player-email w-full p-2 border border-gray-200 rounded-lg focus:border-golf-500 focus:ring-0 text-sm" 
                        placeholder="Email (optional)" 
                        value="${existingPlayer.email || ''}"
@@ -2574,6 +2581,9 @@ function updatePlayerInputs() {
                     <label for="tee${i}${tee}" class="w-8 h-8 rounded-full cursor-pointer border-2 transition ${getTeeColor(tee)}"></label>
                 `).join('')}
                 <input type="number" 
+                       id="playerHandicap${i}"
+                       name="playerHandicap${i}"
+                       aria-label="Player ${i + 1} handicap"
                        class="w-16 p-2 border border-gray-200 rounded-lg text-center text-sm" 
                        placeholder="HCP" 
                        min="0" 
