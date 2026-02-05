@@ -1,0 +1,279 @@
+/* Golf Scorecard - Main Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Reset & Base */
+* {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Safe Area Padding for iOS */
+.safe-area-top {
+    padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Score Input - Remove spinners */
+.score-input::-webkit-outer-spin-button,
+.score-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.score-input {
+    -moz-appearance: textfield;
+}
+
+/* Step Indicators */
+.step-indicator {
+    transition: all 0.3s ease;
+}
+
+.step-indicator.active {
+    background-color: #1a5f2a !important;
+    color: white !important;
+}
+
+.step-indicator.completed {
+    background-color: #22c55e !important;
+    color: white !important;
+}
+
+/* Card Shadow */
+.card-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Primary Button */
+.btn-primary {
+    background: linear-gradient(135deg, #1a5f2a 0%, #22c55e 100%);
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tee Selector */
+.tee-selector input[type="radio"]:checked + label {
+    border-width: 3px;
+    font-weight: 600;
+    transform: scale(1.1);
+}
+
+/* Hole Card Animation */
+.hole-card {
+    transition: all 0.2s ease;
+}
+
+.hole-card:active {
+    transform: scale(0.98);
+}
+
+/* Score Badge Animation */
+.score-badge {
+    animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Slide Up Animation */
+.slide-up {
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modal Backdrop */
+.modal-backdrop {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Score Colors */
+.score-eagle { background-color: #fbbf24; color: #1f2937; }
+.score-birdie { background-color: #22c55e; color: white; }
+.score-par { background-color: #3b82f6; color: white; }
+.score-bogey { background-color: #f97316; color: white; }
+.score-double { background-color: #ef4444; color: white; }
+.score-triple { background-color: #7c2d12; color: white; }
+
+/* Hole Selected State */
+.hole-btn.selected {
+    border-color: #22c55e !important;
+    background-color: #f0fdf4 !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #22c55e;
+    border-radius: 10px;
+}
+
+/* Fix for iOS input zoom */
+@media screen and (max-width: 768px) {
+    select, input[type="text"], input[type="number"], input[type="email"] {
+        font-size: 16px !important;
+    }
+}
+
+/* Tee Colors */
+.tee-black { background-color: #1f2937; border-color: #1f2937; }
+.tee-blue { background-color: #3b82f6; border-color: #3b82f6; }
+.tee-white { background-color: #ffffff; border-color: #9ca3af; }
+.tee-red { background-color: #ef4444; border-color: #ef4444; }
+
+/* Score Cell Colors for Table */
+.score-cell-eagle { background-color: #fbbf24; font-weight: bold; }
+.score-cell-birdie { background-color: #4ade80; color: white; }
+.score-cell-par { background-color: #60a5fa; color: white; }
+.score-cell-bogey { background-color: #fb923c; color: white; }
+.score-cell-double { background-color: #f87171; color: white; }
+
+/* History Card */
+.history-card {
+    transition: all 0.2s ease;
+}
+
+.history-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading Spinner */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+/* Toast Notification */
+.toast {
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast.hide {
+    transform: translateY(20px);
+    opacity: 0;
+}
+
+/* Responsive Typography */
+@media (max-width: 375px) {
+    .text-responsive-lg {
+        font-size: 1.25rem;
+    }
+    .text-responsive-xl {
+        font-size: 1.5rem;
+    }
+}
+
+/* Dark Mode Support (optional) */
+@media (prefers-color-scheme: dark) {
+    .dark-mode-support {
+        /* Add dark mode styles here if needed */
+    }
+}
+
+/* Pull to Refresh Indicator */
+.pull-indicator {
+    transition: transform 0.2s ease;
+}
+
+/* Tab Navigation for History */
+.tab-btn {
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #22c55e;
+    border-radius: 3px 3px 0 0;
+}
+
+/* Form Validation Styles */
+input:invalid:not(:placeholder-shown) {
+    border-color: #ef4444;
+}
+
+input:valid:not(:placeholder-shown) {
+    border-color: #22c55e;
+}
+
+/* Skeleton Loading */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .print-only {
+        display: block !important;
+    }
+}

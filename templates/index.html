@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a5f2a">
+    <meta name="description" content="Golf Scorecard App - Track your golf scores in Indonesia">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <title>Golf Scorecard - Indonesia</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        golf: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            950: '#1a5f2a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="bg-gray-100 min-h-screen safe-area-top safe-area-bottom">
+    <div id="app" class="max-w-lg mx-auto bg-white min-h-screen shadow-xl">
+        
+        <!-- Header -->
+        <header class="bg-golf-950 text-white px-4 py-4 sticky top-0 z-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">⛳</span>
+                    <div>
+                        <h1 class="text-lg font-bold">Golf Scorecard</h1>
+                        <p class="text-xs text-golf-200">Indonesia Edition</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="showHistory()" class="p-2 hover:bg-golf-800 rounded-full transition" title="History">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                    <button onclick="resetGame()" class="p-2 hover:bg-golf-800 rounded-full transition" title="Reset">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Progress Steps -->
+        <div class="bg-white px-4 py-3 border-b sticky top-16 z-40" id="progressBar">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1 text-xs">
+                    <span class="step-indicator w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-gray-200" data-step="1">1</span>
+                    <span class="hidden sm:inline text-gray-500">Setup</span>
+                </div>
+                <div class="flex-1 h-1 bg-gray-200 mx-2 rounded">
+                    <div class="h-full bg-golf-500 rounded transition-all duration-300" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="flex items-center gap-1 text-xs">
+                    <span class="step-indicator w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-gray-200" data-step="2">2</span>
+                    <span class="hidden sm:inline text-gray-500">Play</span>
+                </div>
+                <div class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+                <div class="flex items-center gap-1 text-xs">
+                    <span class="step-indicator w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-gray-200" data-step="3">3</span>
+                    <span class="hidden sm:inline text-gray-500">Results</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <main class="pb-24">
+            
+            <!-- Step 1: Game Setup -->
+            <section id="step1" class="p-4 slide-up">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">🏌️ Start New Game</h2>
+                
+                <!-- Select Region -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Region</label>
+                    <select id="regionSelect" onchange="loadCourses()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
+                        <option value="">-- Select Region --</option>
+                    </select>
+                </div>
+                
+                <!-- Select Course -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Golf Course</label>
+                    <select id="courseSelect" onchange="selectCourse()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white" disabled>
+                        <option value="">-- Select Course --</option>
+                    </select>
+                </div>
+                
+                <!-- Course Info Card -->
+                <div id="courseInfo" class="hidden mb-4 p-4 bg-golf-50 rounded-xl border border-golf-200">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">📍</span>
+                        <div>
+                            <h3 id="courseName" class="font-semibold text-gray-800"></h3>
+                            <p id="courseLocation" class="text-sm text-gray-600"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hole Count -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Number of Holes</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="selectHoles(9)" class="hole-btn p-4 border-2 border-gray-200 rounded-xl text-center transition hover:border-golf-500">
+                            <span class="text-2xl block mb-1">9️⃣</span>
+                            <span class="font-medium">9 Holes</span>
+                        </button>
+                        <button onclick="selectHoles(18)" class="hole-btn p-4 border-2 border-gray-200 rounded-xl text-center transition hover:border-golf-500">
+                            <span class="text-2xl block mb-1">🔟</span>
+                            <span class="font-medium">18 Holes</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Player Count -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Number of Players (1-10)</label>
+                    <div class="flex items-center gap-3">
+                        <button onclick="adjustPlayerCount(-1)" class="w-12 h-12 bg-gray-200 rounded-xl text-xl font-bold hover:bg-gray-300 transition">−</button>
+                        <span id="playerCount" class="text-2xl font-bold text-golf-700 w-8 text-center">1</span>
+                        <button onclick="adjustPlayerCount(1)" class="w-12 h-12 bg-gray-200 rounded-xl text-xl font-bold hover:bg-gray-300 transition">+</button>
+                    </div>
+                </div>
+                
+                <!-- Player Names -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Player Details</label>
+                    <div id="playerInputs" class="space-y-3">
+                        <!-- Dynamic player inputs -->
+                    </div>
+                </div>
+                
+                <!-- Start Button -->
+                <button onclick="startGame()" id="startBtn" class="w-full btn-primary text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Start Game ⛳
+                </button>
+            </section>
+            
+            <!-- History Section -->
+            <section id="historySection" class="hidden p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">📜 Game History</h2>
+                    <button onclick="hideHistory()" class="text-golf-600 text-sm font-medium">Back</button>
+                </div>
+                <div id="historyContainer">
+                    <!-- Dynamic history -->
+                </div>
+            </section>
+            
+            <!-- Step 2: Score Entry -->
+            <section id="step2" class="hidden">
+                <!-- Current Hole Header -->
+                <div class="bg-golf-950 text-white px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-golf-200 text-sm">Hole</span>
+                            <span id="currentHoleNum" class="text-3xl font-bold ml-2">1</span>
+                            <span id="currentHoleTotal" class="text-golf-200 text-sm">/ 18</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-golf-200 text-sm">Par</span>
+                            <span id="currentHolePar" class="text-3xl font-bold ml-2">4</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Score Entry Cards -->
+                <div id="scoreEntryContainer" class="p-4 space-y-4">
+                    <!-- Dynamic score entry for each player -->
+                </div>
+                
+                <!-- Navigation -->
+                <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-bottom">
+                    <div class="max-w-lg mx-auto flex gap-3">
+                        <button onclick="prevHole()" id="prevHoleBtn" class="flex-1 py-3 bg-gray-200 rounded-xl font-medium disabled:opacity-50" disabled>
+                            ← Previous
+                        </button>
+                        <button onclick="nextHole()" id="nextHoleBtn" class="flex-1 py-3 btn-primary text-white rounded-xl font-medium">
+                            Next →
+                        </button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Step 3: Results -->
+            <section id="step3" class="hidden p-4">
+                <div class="text-center mb-6 slide-up">
+                    <span class="text-6xl">🏆</span>
+                    <h2 class="text-2xl font-bold text-gray-800 mt-2">Game Complete!</h2>
+                    <p id="resultsSummary" class="text-gray-600 mt-1"></p>
+                </div>
+                
+                <!-- Leaderboard -->
+                <div class="bg-white rounded-xl card-shadow overflow-hidden mb-4">
+                    <div class="bg-golf-950 text-white px-4 py-3">
+                        <h3 class="font-semibold">🏅 Leaderboard</h3>
+                    </div>
+                    <div id="leaderboard" class="divide-y">
+                        <!-- Dynamic leaderboard -->
+                    </div>
+                </div>
+                
+                <!-- Detailed Scorecard -->
+                <div class="bg-white rounded-xl card-shadow overflow-hidden mb-4">
+                    <div class="bg-golf-800 text-white px-4 py-3 flex items-center justify-between">
+                        <h3 class="font-semibold">📊 Scorecard</h3>
+                        <button onclick="toggleScorecard()" class="text-sm underline">Toggle View</button>
+                    </div>
+                    <div id="scorecardTable" class="overflow-x-auto">
+                        <!-- Dynamic scorecard table -->
+                    </div>
+                </div>
+                
+                <!-- Recommendations -->
+                <div class="bg-white rounded-xl card-shadow overflow-hidden mb-4">
+                    <div class="bg-blue-600 text-white px-4 py-3">
+                        <h3 class="font-semibold">💡 Recommendations</h3>
+                    </div>
+                    <div id="recommendations" class="p-4 space-y-2 text-sm">
+                        <!-- Dynamic recommendations -->
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="space-y-3">
+                    <button onclick="downloadPDF()" class="w-full py-4 btn-primary text-white rounded-xl font-semibold flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download PDF
+                    </button>
+                    <button onclick="showEmailModal()" class="w-full py-4 bg-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Send via Email
+                    </button>
+                    <button onclick="resetGame()" class="w-full py-4 bg-gray-200 text-gray-800 rounded-xl font-semibold">
+                        Start New Game
+                    </button>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Email Modal -->
+        <div id="emailModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-3xl p-6 slide-up">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">📧 Send Scorecard via Email</h3>
+                <input type="email" id="emailInput" placeholder="Enter email address" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 mb-4">
+                <div class="flex gap-3">
+                    <button onclick="hideEmailModal()" class="flex-1 py-3 bg-gray-200 rounded-xl font-medium">Cancel</button>
+                    <button onclick="sendEmail()" class="flex-1 py-3 btn-primary text-white rounded-xl font-medium">Send</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="fixed inset-0 bg-white/80 modal-backdrop z-50 hidden flex items-center justify-center">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-golf-500 border-t-transparent mx-auto"></div>
+                <p class="mt-4 text-gray-600 font-medium">Loading...</p>
+            </div>
+        </div>
+        
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-20 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+    
+    <!-- Application JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

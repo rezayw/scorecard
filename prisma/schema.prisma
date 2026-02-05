@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  gameResults GameResult[]
+
+  @@index([email])
+  @@index([name])
+}
+
+model Course {
+  id       String @id @default(cuid())
+  courseId String @unique // Original ID from GOLF_COURSES
+  name     String
+  location String
+  region   String
+  holes    Int    @default(18)
+  par9     Int    @default(36)
+  par18    Int    @default(72)
+  holePars String // JSON string of hole pars array
+  tees     String // JSON string of tees data
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  games Game[]
+
+  @@index([region])
+  @@index([name])
+}
+
+model Game {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  holeCount Int
+  playedAt  DateTime @default(now())
+  status    String   @default("in_progress") // in_progress, completed
+  totalPar  Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  results GameResult[]
+
+  @@index([courseId])
+  @@index([playedAt])
+  @@index([status])
+}
+
+model GameResult {
+  id             String @id @default(cuid())
+  gameId         String
+  game           Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId       String
+  player         Player @relation(fields: [playerId], references: [id])
+  tee            String @default("white")
+  handicapIndex  Float  @default(0)
+  courseHandicap Int    @default(0)
+  grossScore     Int
+  netScore       Int
+  vsPar          Int
+  rank           Int?
+  scores         String // JSON string of scores array
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([gameId, playerId])
+  @@index([gameId])
+  @@index([playerId])
+  @@index([rank])
+}
+
+model ScoreHistory {
+  id         String   @id @default(cuid())
+  playerName String
+  playerEmail String?
+  courseName String
+  location   String
+  holeCount  Int
+  grossScore Int
+  netScore   Int
+  vsPar      Int
+  playedAt   DateTime @default(now())
+  scores     String   // JSON string of scores
+  
+  createdAt DateTime @default(now())
+
+  @@index([playerEmail])
+  @@index([playedAt])
+}
