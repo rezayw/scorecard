@@ -2271,6 +2271,7 @@ def delete_account():
     
     user_id = session.get('user_id')
     user_email = session.get('user_email')
+    user_name = session.get('user_name')
     
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -2285,8 +2286,24 @@ def delete_account():
         # Delete user's forum posts
         cursor.execute('DELETE FROM ForumPost WHERE userId = ?', (user_id,))
         
-        # Delete user's game results
-        cursor.execute('DELETE FROM GameResult WHERE playerId = ?', (user_id,))
+        # Find Player records that match the user's name or email
+        player_ids = []
+        if user_email:
+            cursor.execute('SELECT id FROM Player WHERE email = ?', (user_email,))
+            player_ids.extend([row[0] for row in cursor.fetchall()])
+        if user_name:
+            cursor.execute('SELECT id FROM Player WHERE name = ? AND id NOT IN ({})'.format(
+                ','.join(['?'] * len(player_ids)) if player_ids else "''"
+            ), [user_name] + player_ids if player_ids else [user_name])
+            player_ids.extend([row[0] for row in cursor.fetchall()])
+        
+        # Delete user's game results (via Player records)
+        for player_id in player_ids:
+            cursor.execute('DELETE FROM GameResult WHERE playerId = ?', (player_id,))
+        
+        # Delete the Player records
+        for player_id in player_ids:
+            cursor.execute('DELETE FROM Player WHERE id = ?', (player_id,))
         
         # Delete user's score history (uses playerEmail)
         if user_email:
@@ -2295,11 +2312,28 @@ def delete_account():
         # Delete user's personal score history
         cursor.execute('DELETE FROM UserScoreHistory WHERE userId = ?', (user_id,))
         
+        # Delete any OTPs for this user
+        if user_email:
+            cursor.execute('DELETE FROM OTP WHERE email = ?', (user_email,))
+        
         # Delete user account
         cursor.execute('DELETE FROM User WHERE id = ?', (user_id,))
         
         conn.commit()
         conn.close()
+        
+        # Delete user data from events service
+        try:
+            events_service_url = os.environ.get('EVENTS_SERVICE_URL', 'http://golf-events:5001')
+            events_api_key = os.environ.get('EVENTS_SERVICE_API_KEY', 'golf-events-internal-key-2024')
+            requests.delete(
+                f'{events_service_url}/api/user-data',
+                json={'userId': user_id, 'email': user_email},
+                headers={'X-API-Key': events_api_key},
+                timeout=5
+            )
+        except Exception as e:
+            app.logger.warning(f"Failed to delete user data from events service: {str(e)}")
         
         # Clear session
         session.clear()

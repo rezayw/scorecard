@@ -128,6 +128,11 @@ html, body, div, span, p, h1, h2, h3, h4, h5, h6, a, button, input, select, text
     -webkit-backdrop-filter: blur(4px);
 }
 
+/* Modal visibility - show as flex when not hidden */
+.modal-backdrop:not(.hidden) {
+    display: flex;
+}
+
 /* Score Colors */
 .score-eagle { background-color: #fbbf24; color: #1f2937; }
 .score-birdie { background-color: #22c55e; color: white; }

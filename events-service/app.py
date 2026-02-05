@@ -743,6 +743,49 @@ def cancel_event_registration(event_id):
     
     return jsonify({'success': True, 'message': 'Registration cancelled'})
 
+
+@app.route('/api/user-data', methods=['DELETE'])
+@require_api_key
+def delete_user_data():
+    """Delete all data associated with a user (for account deletion)"""
+    data = request.json or {}
+    user_id = sanitize_id(data.get('userId'))
+    email = sanitize_email_input(data.get('email', ''))
+    
+    if not user_id and not email:
+        return jsonify({'success': False, 'message': 'User ID or email required'}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    deleted_count = 0
+    
+    # Delete registrations by user ID
+    if user_id:
+        cursor.execute('SELECT eventId FROM EventRegistration WHERE userId = ?', (user_id,))
+        event_ids = [row['eventId'] for row in cursor.fetchall()]
+        cursor.execute('DELETE FROM EventRegistration WHERE userId = ?', (user_id,))
+        deleted_count += cursor.rowcount
+        # Update participant counts
+        for event_id in event_ids:
+            cursor.execute('UPDATE Event SET currentParticipants = currentParticipants - 1 WHERE id = ? AND currentParticipants > 0', (event_id,))
+    
+    # Delete registrations by email
+    if email:
+        cursor.execute('SELECT eventId FROM EventRegistration WHERE email = ? AND (userId IS NULL OR userId != ?)', (email, user_id or ''))
+        event_ids = [row['eventId'] for row in cursor.fetchall()]
+        cursor.execute('DELETE FROM EventRegistration WHERE email = ? AND (userId IS NULL OR userId != ?)', (email, user_id or ''))
+        deleted_count += cursor.rowcount
+        # Update participant counts
+        for event_id in event_ids:
+            cursor.execute('UPDATE Event SET currentParticipants = currentParticipants - 1 WHERE id = ? AND currentParticipants > 0', (event_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': f'Deleted {deleted_count} registration(s)'})
+
+
 # =====================================
 # Health Check
 # =====================================

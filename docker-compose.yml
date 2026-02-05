@@ -7,6 +7,7 @@ services:
     environment:
       - FLASK_ENV=production
       - DATABASE_URL=file:./prisma/dev.db
+      - SECRET_KEY=${SECRET_KEY:-ugg-itb-golf-scorecard-secret-key-2024-prod}
       - EVENTS_SERVICE_URL=http://golf-events:5001
       - EVENTS_SERVICE_API_KEY=golf-events-internal-key-2024
       - RESEND_API_KEY=${RESEND_API_KEY:-}
