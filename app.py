@@ -420,6 +420,48 @@ GOLF_COURSES = {
                 "white": {"rating": 69.5, "slope": 127},
                 "red": {"rating": 68.0, "slope": 122}
             }
+        },
+        {
+            "id": "senayan",
+            "name": "Senayan National Golf Club",
+            "location": "Jakarta Pusat",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.8, "slope": 136},
+                "blue": {"rating": 71.5, "slope": 131},
+                "white": {"rating": 69.2, "slope": 125},
+                "red": {"rating": 67.8, "slope": 120}
+            }
+        },
+        {
+            "id": "royale",
+            "name": "Royale Jakarta Golf Club",
+            "location": "Jakarta Timur",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 73.2, "slope": 134},
+                "blue": {"rating": 71.0, "slope": 129},
+                "white": {"rating": 68.8, "slope": 124},
+                "red": {"rating": 67.2, "slope": 119}
+            }
+        },
+        {
+            "id": "cengkareng",
+            "name": "Cengkareng Golf Club",
+            "location": "Jakarta Barat",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.5, "slope": 130},
+                "blue": {"rating": 70.2, "slope": 125},
+                "white": {"rating": 68.0, "slope": 120},
+                "red": {"rating": 66.5, "slope": 115}
+            }
         }
     ],
     "tangerang": [
@@ -463,6 +505,108 @@ GOLF_COURSES = {
                 "blue": {"rating": 70.2, "slope": 125},
                 "white": {"rating": 68.0, "slope": 120},
                 "red": {"rating": 66.5, "slope": 115}
+            }
+        },
+        {
+            "id": "alam_sutera",
+            "name": "Alam Sutera Golf & Country Club",
+            "location": "Tangerang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 73.5, "slope": 135},
+                "blue": {"rating": 71.2, "slope": 130},
+                "white": {"rating": 69.0, "slope": 124},
+                "red": {"rating": 67.5, "slope": 119}
+            }
+        },
+        {
+            "id": "imperial_klub",
+            "name": "Imperial Klub Golf",
+            "location": "Tangerang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.8, "slope": 132},
+                "blue": {"rating": 70.5, "slope": 127},
+                "white": {"rating": 68.2, "slope": 122},
+                "red": {"rating": 66.8, "slope": 117}
+            }
+        }
+    ],
+    "bekasi": [
+        {
+            "id": "jababeka",
+            "name": "Jababeka Golf & Country Club",
+            "location": "Cikarang, Bekasi",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 4, 5, 3, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.0, "slope": 133},
+                "blue": {"rating": 70.8, "slope": 128},
+                "white": {"rating": 68.5, "slope": 122},
+                "red": {"rating": 67.0, "slope": 117}
+            }
+        },
+        {
+            "id": "emeralda",
+            "name": "Emeralda Golf Club",
+            "location": "Cikarang, Bekasi",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 74.0, "slope": 138},
+                "blue": {"rating": 71.8, "slope": 133},
+                "white": {"rating": 69.5, "slope": 127},
+                "red": {"rating": 68.0, "slope": 122}
+            }
+        },
+        {
+            "id": "lippo_cikarang",
+            "name": "Lippo Cikarang Golf",
+            "location": "Cikarang, Bekasi",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.2, "slope": 129},
+                "blue": {"rating": 70.0, "slope": 124},
+                "white": {"rating": 67.8, "slope": 119},
+                "red": {"rating": 66.2, "slope": 114}
+            }
+        }
+    ],
+    "karawang": [
+        {
+            "id": "karawang",
+            "name": "Karawang International Golf",
+            "location": "Karawang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 73.5, "slope": 136},
+                "blue": {"rating": 71.2, "slope": 131},
+                "white": {"rating": 69.0, "slope": 125},
+                "red": {"rating": 67.5, "slope": 120}
+            }
+        },
+        {
+            "id": "singaperbangsa",
+            "name": "Singaperbangsa Golf Club",
+            "location": "Karawang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.0, "slope": 128},
+                "blue": {"rating": 69.8, "slope": 123},
+                "white": {"rating": 67.5, "slope": 118},
+                "red": {"rating": 66.0, "slope": 113}
             }
         }
     ],
@@ -508,6 +652,34 @@ GOLF_COURSES = {
                 "white": {"rating": 67.5, "slope": 118},
                 "red": {"rating": 66.0, "slope": 113}
             }
+        },
+        {
+            "id": "sentul_highlands",
+            "name": "Sentul Highlands Golf Club",
+            "location": "Sentul, Bogor",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 74.8, "slope": 144},
+                "blue": {"rating": 72.5, "slope": 139},
+                "white": {"rating": 70.2, "slope": 132},
+                "red": {"rating": 68.8, "slope": 127}
+            }
+        },
+        {
+            "id": "klub_bogor_raya",
+            "name": "Klub Golf Bogor Raya",
+            "location": "Bogor",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.2, "slope": 134},
+                "blue": {"rating": 71.0, "slope": 129},
+                "white": {"rating": 68.8, "slope": 123},
+                "red": {"rating": 67.2, "slope": 118}
+            }
         }
     ],
     "bandung": [
@@ -538,6 +710,94 @@ GOLF_COURSES = {
                 "white": {"rating": 68.2, "slope": 120},
                 "red": {"rating": 66.8, "slope": 115}
             }
+        },
+        {
+            "id": "parahyangan",
+            "name": "Parahyangan Golf Bandung",
+            "location": "Bandung",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.0, "slope": 132},
+                "blue": {"rating": 70.8, "slope": 127},
+                "white": {"rating": 68.5, "slope": 121},
+                "red": {"rating": 67.0, "slope": 116}
+            }
+        },
+        {
+            "id": "bandung_giri_gahana",
+            "name": "Bandung Giri Gahana Golf",
+            "location": "Jatinangor, Bandung",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 72.5, "slope": 129},
+                "blue": {"rating": 70.2, "slope": 124},
+                "white": {"rating": 68.0, "slope": 119},
+                "red": {"rating": 66.5, "slope": 114}
+            }
+        }
+    ],
+    "semarang": [
+        {
+            "id": "semarang_golf",
+            "name": "Semarang Golf Club",
+            "location": "Semarang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 4, 5, 3, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.5, "slope": 130},
+                "blue": {"rating": 70.2, "slope": 125},
+                "white": {"rating": 68.0, "slope": 120},
+                "red": {"rating": 66.5, "slope": 115}
+            }
+        },
+        {
+            "id": "gombel",
+            "name": "Gombel Golf Club",
+            "location": "Semarang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 71.8, "slope": 127},
+                "blue": {"rating": 69.5, "slope": 122},
+                "white": {"rating": 67.2, "slope": 117},
+                "red": {"rating": 65.8, "slope": 112}
+            }
+        }
+    ],
+    "yogyakarta": [
+        {
+            "id": "merapi",
+            "name": "Merapi Golf Club",
+            "location": "Yogyakarta",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.0, "slope": 128},
+                "blue": {"rating": 69.8, "slope": 123},
+                "white": {"rating": 67.5, "slope": 118},
+                "red": {"rating": 66.0, "slope": 113}
+            }
+        },
+        {
+            "id": "hyatt_yogya",
+            "name": "Hyatt Regency Yogyakarta Golf",
+            "location": "Yogyakarta",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 71.5, "slope": 126},
+                "blue": {"rating": 69.2, "slope": 121},
+                "white": {"rating": 67.0, "slope": 116},
+                "red": {"rating": 65.5, "slope": 111}
+            }
         }
     ],
     "surabaya": [
@@ -567,6 +827,64 @@ GOLF_COURSES = {
                 "blue": {"rating": 70.2, "slope": 126},
                 "white": {"rating": 68.0, "slope": 121},
                 "red": {"rating": 66.5, "slope": 116}
+            }
+        },
+        {
+            "id": "bukit_darmo",
+            "name": "Bukit Darmo Golf",
+            "location": "Surabaya",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 71.8, "slope": 127},
+                "blue": {"rating": 69.5, "slope": 122},
+                "white": {"rating": 67.2, "slope": 117},
+                "red": {"rating": 65.8, "slope": 112}
+            }
+        },
+        {
+            "id": "yani_golf",
+            "name": "Yani Golf Club",
+            "location": "Surabaya",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 72.0, "slope": 128},
+                "blue": {"rating": 69.8, "slope": 123},
+                "white": {"rating": 67.5, "slope": 118},
+                "red": {"rating": 66.0, "slope": 113}
+            }
+        }
+    ],
+    "malang": [
+        {
+            "id": "taman_dayu",
+            "name": "Taman Dayu Golf Club",
+            "location": "Pasuruan, Malang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.5, "slope": 136},
+                "blue": {"rating": 71.2, "slope": 131},
+                "white": {"rating": 69.0, "slope": 125},
+                "red": {"rating": 67.5, "slope": 120}
+            }
+        },
+        {
+            "id": "malang_golf",
+            "name": "Malang Golf & Country Club",
+            "location": "Malang",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 72.2, "slope": 129},
+                "blue": {"rating": 70.0, "slope": 124},
+                "white": {"rating": 67.8, "slope": 119},
+                "red": {"rating": 66.2, "slope": 114}
             }
         }
     ],
@@ -611,6 +929,198 @@ GOLF_COURSES = {
                 "blue": {"rating": 71.5, "slope": 135},
                 "white": {"rating": 69.2, "slope": 128},
                 "red": {"rating": 67.8, "slope": 123}
+            }
+        },
+        {
+            "id": "new_kuta",
+            "name": "New Kuta Golf",
+            "location": "Pecatu, Bali",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 74.2, "slope": 141},
+                "blue": {"rating": 72.0, "slope": 136},
+                "white": {"rating": 69.8, "slope": 129},
+                "red": {"rating": 68.2, "slope": 124}
+            }
+        },
+        {
+            "id": "bukit_pandawa",
+            "name": "Bukit Pandawa Golf & Country Club",
+            "location": "Kutuh, Bali",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 4, 5, 3, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.5, "slope": 138},
+                "blue": {"rating": 71.2, "slope": 133},
+                "white": {"rating": 69.0, "slope": 126},
+                "red": {"rating": 67.5, "slope": 121}
+            }
+        }
+    ],
+    "batam": [
+        {
+            "id": "palm_springs",
+            "name": "Palm Springs Golf & Beach Resort",
+            "location": "Batam",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 73.0, "slope": 133},
+                "blue": {"rating": 70.8, "slope": 128},
+                "white": {"rating": 68.5, "slope": 122},
+                "red": {"rating": 67.0, "slope": 117}
+            }
+        },
+        {
+            "id": "southlinks",
+            "name": "Southlinks Country Club",
+            "location": "Batam",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.5, "slope": 131},
+                "blue": {"rating": 70.2, "slope": 126},
+                "white": {"rating": 68.0, "slope": 121},
+                "red": {"rating": 66.5, "slope": 116}
+            }
+        },
+        {
+            "id": "tering_bay",
+            "name": "Tering Bay Golf & Country Club",
+            "location": "Batam",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.2, "slope": 134},
+                "blue": {"rating": 71.0, "slope": 129},
+                "white": {"rating": 68.8, "slope": 123},
+                "red": {"rating": 67.2, "slope": 118}
+            }
+        }
+    ],
+    "medan": [
+        {
+            "id": "medan_golf",
+            "name": "Medan Golf Club",
+            "location": "Medan",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 4, 5, 3, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 72.0, "slope": 128},
+                "blue": {"rating": 69.8, "slope": 123},
+                "white": {"rating": 67.5, "slope": 118},
+                "red": {"rating": 66.0, "slope": 113}
+            }
+        },
+        {
+            "id": "tiara_medan",
+            "name": "Tiara Medan Golf & Country Club",
+            "location": "Medan",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 71.5, "slope": 126},
+                "blue": {"rating": 69.2, "slope": 121},
+                "white": {"rating": 67.0, "slope": 116},
+                "red": {"rating": 65.5, "slope": 111}
+            }
+        }
+    ],
+    "makassar": [
+        {
+            "id": "makassar_golf",
+            "name": "Makassar Golf Club",
+            "location": "Makassar",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 71.8, "slope": 127},
+                "blue": {"rating": 69.5, "slope": 122},
+                "white": {"rating": 67.2, "slope": 117},
+                "red": {"rating": 65.8, "slope": 112}
+            }
+        },
+        {
+            "id": "barombong",
+            "name": "Barombong Golf & Country Club",
+            "location": "Makassar",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 72.2, "slope": 129},
+                "blue": {"rating": 70.0, "slope": 124},
+                "white": {"rating": 67.8, "slope": 119},
+                "red": {"rating": 66.2, "slope": 114}
+            }
+        }
+    ],
+    "lombok": [
+        {
+            "id": "lombok_golf",
+            "name": "Lombok Golf Kosaido Country Club",
+            "location": "Lombok",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 73.0, "slope": 133},
+                "blue": {"rating": 70.8, "slope": 128},
+                "white": {"rating": 68.5, "slope": 122},
+                "red": {"rating": 67.0, "slope": 117}
+            }
+        }
+    ],
+    "bintan": [
+        {
+            "id": "laguna_bintan",
+            "name": "Laguna Bintan Golf Club",
+            "location": "Bintan",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 5, 3, 4, 4, 3, 5, 4, 4, 4, 5, 3, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 74.0, "slope": 139},
+                "blue": {"rating": 71.8, "slope": 134},
+                "white": {"rating": 69.5, "slope": 127},
+                "red": {"rating": 68.0, "slope": 122}
+            }
+        },
+        {
+            "id": "ria_bintan",
+            "name": "Ria Bintan Golf Club",
+            "location": "Bintan",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 5, 3, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3, 4],
+            "tees": {
+                "black": {"rating": 74.5, "slope": 142},
+                "blue": {"rating": 72.2, "slope": 137},
+                "white": {"rating": 70.0, "slope": 130},
+                "red": {"rating": 68.5, "slope": 125}
+            }
+        },
+        {
+            "id": "bintan_lagoon",
+            "name": "Bintan Lagoon Resort Golf",
+            "location": "Bintan",
+            "holes": 18,
+            "par": {"9": 36, "18": 72},
+            "hole_pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+            "tees": {
+                "black": {"rating": 73.5, "slope": 137},
+                "blue": {"rating": 71.2, "slope": 132},
+                "white": {"rating": 69.0, "slope": 125},
+                "red": {"rating": 67.5, "slope": 120}
             }
         }
     ]
