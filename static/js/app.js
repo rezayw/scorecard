@@ -219,6 +219,74 @@ function togglePassword(inputId) {
     input.type = input.type === 'password' ? 'text' : 'password';
 }
 
+// Password complexity validation
+function validatePasswordComplexity(password) {
+    return {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'\/~`]/.test(password),
+        get valid() {
+            return this.length && this.uppercase && this.lowercase && this.number && this.special;
+        }
+    };
+}
+
+function updatePasswordChecklist() {
+    const password = document.getElementById('registerPassword').value;
+    const checks = validatePasswordComplexity(password);
+    
+    const updateCheck = (id, passed) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const icon = el.querySelector('.check-icon');
+            if (passed) {
+                el.classList.remove('text-gray-400', 'text-red-500');
+                el.classList.add('text-green-500');
+                if (icon) icon.textContent = '\u2713';
+            } else {
+                el.classList.remove('text-green-500', 'text-red-500');
+                el.classList.add('text-gray-400');
+                if (icon) icon.textContent = '\u25cb';
+            }
+        }
+    };
+    
+    updateCheck('check-length', checks.length);
+    updateCheck('check-uppercase', checks.uppercase);
+    updateCheck('check-lowercase', checks.lowercase);
+    updateCheck('check-number', checks.number);
+    updateCheck('check-special', checks.special);
+    
+    // Also update match status if confirm field has value
+    updatePasswordMatch();
+}
+
+function updatePasswordMatch() {
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('registerConfirmPassword').value;
+    const statusEl = document.getElementById('passwordMatchStatus');
+    
+    if (!statusEl) return;
+    
+    if (confirmPassword.length === 0) {
+        statusEl.classList.add('hidden');
+        return;
+    }
+    
+    statusEl.classList.remove('hidden');
+    if (password === confirmPassword) {
+        statusEl.textContent = '\u2713 Passwords match';
+        statusEl.classList.remove('text-red-500');
+        statusEl.classList.add('text-green-500');
+    } else {
+        statusEl.textContent = '\u2717 Passwords do not match';
+        statusEl.classList.remove('text-green-500');
+        statusEl.classList.add('text-red-500');
+    }
+}
+
 async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
@@ -265,7 +333,7 @@ async function handleRegister() {
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
     
     // Validate required fields
-    if (!name || !username || !studentId || !email || !password) {
+    if (!name || !username || !studentId || !email || !phone || !password) {
         showToast('Please fill in all required fields');
         return;
     }
@@ -273,6 +341,13 @@ async function handleRegister() {
     // Validate name (2+ characters, letters and spaces only)
     if (name.length < 2 || !/^[\p{L}\s\-']+$/u.test(name)) {
         showToast('Please enter a valid name');
+        return;
+    }
+    
+    // Validate phone (Indonesian format)
+    const phoneClean = phone.replace(/[\s\-()]/g, '');
+    if (!/^\+?[0-9]{10,15}$/.test(phoneClean)) {
+        showToast('Please enter a valid phone number');
         return;
     }
     
@@ -294,8 +369,10 @@ async function handleRegister() {
         return;
     }
     
-    if (password.length < 6) {
-        showToast('Password must be at least 6 characters');
+    // Validate password complexity
+    const pwdChecks = validatePasswordComplexity(password);
+    if (!pwdChecks.valid) {
+        showToast('Password does not meet all requirements');
         return;
     }
     

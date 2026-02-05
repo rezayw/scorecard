@@ -176,15 +176,28 @@ def sanitize_otp(otp):
     return otp[:6] if len(otp) == 6 else None
 
 def validate_password(password):
-    """Validate password strength"""
-    if not password or len(password) < 8:
-        return False, "Password must be at least 8 characters long"
+    """Validate password strength with complexity requirements"""
+    errors = []
+    
+    if not password:
+        return False, "Password is required"
+    
+    if len(password) < 8:
+        errors.append("at least 8 characters")
     if len(password) > 128:
         return False, "Password too long (max 128 characters)"
-    if not re.search(r'[A-Za-z]', password):
-        return False, "Password must contain at least one letter"
+    if not re.search(r'[a-z]', password):
+        errors.append("one lowercase letter")
+    if not re.search(r'[A-Z]', password):
+        errors.append("one uppercase letter")
     if not re.search(r'\d', password):
-        return False, "Password must contain at least one number"
+        errors.append("one number")
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;\'/~`]', password):
+        errors.append("one special character")
+    
+    if errors:
+        return False, "Password must contain: " + ", ".join(errors)
+    
     return True, None
 
 def require_auth(f):
@@ -1931,6 +1944,14 @@ def register():
     
     if not student_id:
         return jsonify({'success': False, 'message': 'Student ID (ITB) is required'}), 400
+    
+    if not phone:
+        return jsonify({'success': False, 'message': 'Phone number is required'}), 400
+    
+    # Validate phone format (10-15 digits)
+    phone_clean = re.sub(r'[\s\-()]', '', phone)
+    if not re.match(r'^\+?[0-9]{10,15}$', phone_clean):
+        return jsonify({'success': False, 'message': 'Please enter a valid phone number'}), 400
     
     # Validate password strength
     is_valid, error_msg = validate_password(password)
