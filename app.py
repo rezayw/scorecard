@@ -347,6 +347,7 @@ def init_db():
             title TEXT NOT NULL,
             content TEXT NOT NULL,
             category TEXT DEFAULT 'general',
+            image TEXT DEFAULT NULL,
             likes INTEGER DEFAULT 0,
             commentCount INTEGER DEFAULT 0,
             createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -354,6 +355,12 @@ def init_db():
             FOREIGN KEY (userId) REFERENCES User(id)
         )
     ''')
+    
+    # Add image column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute('ALTER TABLE ForumPost ADD COLUMN image TEXT DEFAULT NULL')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Create ForumComment table
     cursor.execute('''
@@ -2318,11 +2325,19 @@ def update_profile():
         values.append(bio)
     
     if 'avatar' in data:
-        # Validate avatar URL or data
-        avatar = sanitize_string(data['avatar'], max_length=500)
-        if avatar and (avatar.startswith('data:image/') or avatar.startswith('https://')):
+        # Validate avatar data (base64 image, max 5MB ~= 7MB base64 string)
+        avatar = data.get('avatar')
+        if avatar:
+            if len(avatar) > 7 * 1024 * 1024:
+                conn.close()
+                return jsonify({'error': 'Avatar image too large (max 5MB)'}), 400
+            if avatar.startswith('data:image/'):
+                updates.append('avatar = ?')
+                values.append(avatar)
+        else:
+            # Allow clearing avatar
             updates.append('avatar = ?')
-            values.append(avatar)
+            values.append(None)
     
     if 'city' in data:
         city = sanitize_string(data['city'], max_length=100)
@@ -2460,10 +2475,19 @@ def get_forum_posts():
     
     if category and category != 'all':
         cursor.execute('''
-            SELECT * FROM ForumPost WHERE category = ? ORDER BY createdAt DESC
+            SELECT fp.*, u.username, u.studentId, u.avatar as userAvatar
+            FROM ForumPost fp
+            LEFT JOIN User u ON fp.userId = u.id
+            WHERE fp.category = ? 
+            ORDER BY fp.createdAt DESC
         ''', (category,))
     else:
-        cursor.execute('SELECT * FROM ForumPost ORDER BY createdAt DESC')
+        cursor.execute('''
+            SELECT fp.*, u.username, u.studentId, u.avatar as userAvatar
+            FROM ForumPost fp
+            LEFT JOIN User u ON fp.userId = u.id
+            ORDER BY fp.createdAt DESC
+        ''')
     
     posts = [dict(row) for row in cursor.fetchall()]
     
@@ -2490,6 +2514,11 @@ def create_forum_post():
     title = sanitize_string(data.get('title', ''), max_length=200)
     content = sanitize_string(data.get('content', ''), max_length=5000, allow_html=True)
     category = sanitize_string(data.get('category', 'general'), max_length=50)
+    image = data.get('image')  # Base64 image data
+    
+    # Validate image if provided (max 5MB base64 ~= 6.67MB string)
+    if image and len(image) > 7 * 1024 * 1024:
+        return jsonify({'success': False, 'message': 'Image size must be less than 5MB'}), 400
     
     # Validate category
     valid_categories = ['general', 'tips', 'equipment', 'courses', 'tournaments', 'other']
@@ -2507,9 +2536,9 @@ def create_forum_post():
     
     post_id = secrets.token_hex(16)
     cursor.execute('''
-        INSERT INTO ForumPost (id, userId, userName, title, content, category)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (post_id, session['user_id'], sanitize_name(session['user_name']), title, content, category))
+        INSERT INTO ForumPost (id, userId, userName, title, content, category, image)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (post_id, session['user_id'], sanitize_name(session['user_name']), title, content, category, image))
     
     conn.commit()
     conn.close()
@@ -2533,7 +2562,12 @@ def get_forum_post(post_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    cursor.execute('SELECT * FROM ForumPost WHERE id = ?', (post_id,))
+    cursor.execute('''
+        SELECT fp.*, u.username, u.studentId, u.avatar as userAvatar
+        FROM ForumPost fp
+        LEFT JOIN User u ON fp.userId = u.id
+        WHERE fp.id = ?
+    ''', (post_id,))
     post = cursor.fetchone()
     
     if not post:
@@ -2542,8 +2576,14 @@ def get_forum_post(post_id):
     
     post = dict(post)
     
-    # Get comments
-    cursor.execute('SELECT * FROM ForumComment WHERE postId = ? ORDER BY createdAt ASC', (post_id,))
+    # Get comments with user info
+    cursor.execute('''
+        SELECT fc.*, u.username, u.studentId, u.avatar as userAvatar
+        FROM ForumComment fc
+        LEFT JOIN User u ON fc.userId = u.id
+        WHERE fc.postId = ? 
+        ORDER BY fc.createdAt ASC
+    ''', (post_id,))
     post['comments'] = [dict(row) for row in cursor.fetchall()]
     
     # Check if current user has liked

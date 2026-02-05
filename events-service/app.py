@@ -479,10 +479,14 @@ def create_event():
     contact_person = sanitize_name(data.get('contactPerson', ''))
     contact_phone = sanitize_phone(data.get('contactPhone', ''))
     contact_email = sanitize_email_input(data.get('contactEmail', ''))
-    image_url = sanitize_string(data.get('imageUrl', ''), max_length=500)
-    # Validate image URL if provided
-    if image_url and not (image_url.startswith('https://') or image_url.startswith('/')):
-        image_url = None
+    image_url = data.get('imageUrl', '')
+    # Validate image - accept base64 data URLs (max 5MB ~= 7MB string) or https URLs
+    if image_url:
+        if image_url.startswith('data:image/'):
+            if len(image_url) > 7 * 1024 * 1024:
+                return jsonify({'error': 'Image too large (max 5MB)'}), 400
+        elif not (image_url.startswith('https://') or image_url.startswith('/')):
+            image_url = None
     created_by = sanitize_id(data.get('createdBy'))
     
     conn = get_db()

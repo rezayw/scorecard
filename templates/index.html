@@ -290,8 +290,9 @@
                 <!-- Profile Header -->
                 <div class="bg-gradient-to-br from-golf-600 to-golf-800 text-white px-4 py-6">
                     <div class="flex items-center gap-4">
-                        <div id="profileAvatar" class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/30">
-                            U
+                        <div id="profileAvatarContainer" class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/30 overflow-hidden">
+                            <span id="profileAvatar">U</span>
+                            <img id="profileAvatarImg" src="" alt="Profile" class="w-full h-full object-cover hidden">
                         </div>
                         <div class="flex-1">
                             <h2 id="profileName" class="text-xl font-bold">User Name</h2>
@@ -1144,10 +1145,22 @@
                 <div class="p-6 space-y-4">
                     <!-- Avatar Selection -->
                     <div class="text-center">
-                        <div id="editProfileAvatar" class="w-20 h-20 bg-gradient-to-br from-golf-400 to-golf-600 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-2">
-                            U
+                        <div class="relative inline-block">
+                            <div id="editProfileAvatarContainer" class="w-24 h-24 bg-gradient-to-br from-golf-400 to-golf-600 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-2 overflow-hidden">
+                                <span id="editProfileAvatar">U</span>
+                                <img id="editProfileAvatarImg" src="" alt="Profile" class="w-full h-full object-cover hidden">
+                            </div>
+                            <button onclick="document.getElementById('profilePictureInput').click()" 
+                                    class="absolute bottom-0 right-0 w-8 h-8 bg-golf-500 text-white rounded-full flex items-center justify-center hover:bg-golf-600 transition shadow-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </button>
                         </div>
-                        <p class="text-xs text-gray-500">Avatar shows your name initial</p>
+                        <input type="file" id="profilePictureInput" accept="image/*" class="hidden" onchange="handleProfilePictureUpload(event)">
+                        <p class="text-xs text-gray-500 mt-1">Tap the camera icon to change photo</p>
+                        <button id="removeAvatarBtn" onclick="removeProfilePicture()" class="text-xs text-red-500 hover:text-red-600 mt-1 hidden">Remove photo</button>
                     </div>
                     
                     <div>
@@ -1270,6 +1283,32 @@
                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 resize-none"></textarea>
                     </div>
                     
+                    <!-- Event Poster Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Event Poster (optional)</label>
+                        <div id="eventPosterPreviewContainer" class="hidden mb-3">
+                            <div class="relative">
+                                <img id="eventPosterPreview" src="" alt="Event Poster" class="w-full h-40 object-cover rounded-xl">
+                                <button type="button" onclick="removeEventPoster()" class="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 shadow-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="eventPosterButtons">
+                            <button type="button" onclick="document.getElementById('eventPosterInput').click()" 
+                                    class="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-amber-400 hover:text-amber-600 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span class="text-sm font-medium">Upload Event Poster</span>
+                            </button>
+                        </div>
+                        <input type="file" id="eventPosterInput" accept="image/*" class="hidden" onchange="handleEventPosterUpload(event)">
+                        <p class="text-xs text-gray-400 mt-1">Recommended: 16:9 ratio, max 5MB</p>
+                    </div>
+                    
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
@@ -1354,6 +1393,39 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
                         <textarea id="postContent" rows="5" placeholder="Share your thoughts, tips, or experiences..."
                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 resize-none"></textarea>
+                    </div>
+                    <!-- Image Upload Section -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Photo (optional)</label>
+                        <div id="postImagePreviewContainer" class="hidden mb-3">
+                            <div class="relative inline-block">
+                                <img id="postImagePreview" src="" alt="Preview" class="w-full max-h-48 object-cover rounded-xl">
+                                <button onclick="removePostImage()" class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="postImageButtons" class="grid grid-cols-2 gap-3">
+                            <button type="button" onclick="document.getElementById('postImageInput').click()" 
+                                    class="flex items-center justify-center gap-2 p-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span class="text-sm font-medium">Add Photo</span>
+                            </button>
+                            <button type="button" onclick="document.getElementById('postCameraInput').click()" 
+                                    class="flex items-center justify-center gap-2 p-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span class="text-sm font-medium">Take Photo</span>
+                            </button>
+                        </div>
+                        <input type="file" id="postImageInput" accept="image/*" class="hidden" onchange="handlePostImageUpload(event)">
+                        <input type="file" id="postCameraInput" accept="image/*" capture="environment" class="hidden" onchange="handlePostImageUpload(event)">
                     </div>
                     <button onclick="submitForumPost()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
                         Post to Forum

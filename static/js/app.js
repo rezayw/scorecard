@@ -34,7 +34,8 @@ let eventsState = {
     events: [],
     templates: [],
     currentEvent: null,
-    currentCategory: 'all'
+    currentCategory: 'all',
+    eventPoster: null
 };
 
 // Initialize Application
@@ -42,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchCourses();
     updatePlayerInputs();
     loadHistory();
-    loadLandingStats();
     checkAuthStatus();
     checkSavedGame();
     
@@ -748,7 +748,8 @@ async function handleLogout() {
 
 let profileState = {
     profile: null,
-    stats: null
+    stats: null,
+    pendingAvatar: undefined
 };
 
 function showProfile() {
@@ -811,9 +812,27 @@ async function loadProfileStats() {
 function renderProfile(profile) {
     const initial = profile.name ? profile.name.charAt(0).toUpperCase() : 'U';
     
-    // Update avatar
-    document.getElementById('profileAvatar').textContent = initial;
-    document.getElementById('userAvatarLanding').textContent = initial;
+    // Update avatar in profile section
+    const profileAvatarText = document.getElementById('profileAvatar');
+    const profileAvatarImg = document.getElementById('profileAvatarImg');
+    const landingAvatarText = document.getElementById('userAvatarLanding');
+    
+    if (profile.avatar) {
+        profileAvatarText.classList.add('hidden');
+        profileAvatarImg.src = profile.avatar;
+        profileAvatarImg.classList.remove('hidden');
+        // Update landing avatar if it exists
+        if (landingAvatarText) {
+            landingAvatarText.innerHTML = `<img src="${profile.avatar}" class="w-full h-full object-cover rounded-full" alt="Avatar">`;
+        }
+    } else {
+        profileAvatarText.textContent = initial;
+        profileAvatarText.classList.remove('hidden');
+        profileAvatarImg.classList.add('hidden');
+        if (landingAvatarText) {
+            landingAvatarText.textContent = initial;
+        }
+    }
     
     // Update basic info
     document.getElementById('profileName').textContent = profile.name || 'User';
@@ -882,6 +901,9 @@ function showEditProfileModal() {
         return;
     }
     
+    // Reset pending avatar
+    profileState.pendingAvatar = undefined;
+    
     // Populate form fields
     document.getElementById('editProfileName').value = profile.name || '';
     document.getElementById('editProfilePhone').value = profile.phone || '';
@@ -891,12 +913,71 @@ function showEditProfileModal() {
     
     // Update avatar preview
     const initial = profile.name ? profile.name.charAt(0).toUpperCase() : 'U';
-    document.getElementById('editProfileAvatar').textContent = initial;
+    const avatarText = document.getElementById('editProfileAvatar');
+    const avatarImg = document.getElementById('editProfileAvatarImg');
+    const removeBtn = document.getElementById('removeAvatarBtn');
+    
+    if (profile.avatar) {
+        avatarText.classList.add('hidden');
+        avatarImg.src = profile.avatar;
+        avatarImg.classList.remove('hidden');
+        removeBtn.classList.remove('hidden');
+    } else {
+        avatarText.textContent = initial;
+        avatarText.classList.remove('hidden');
+        avatarImg.classList.add('hidden');
+        removeBtn.classList.add('hidden');
+    }
     
     // Populate home course dropdown
     populateHomeCourseDropdown(profile.homeCourse);
     
     document.getElementById('editProfileModal').classList.remove('hidden');
+}
+
+function handleProfilePictureUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Image size must be less than 5MB');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const avatarText = document.getElementById('editProfileAvatar');
+        const avatarImg = document.getElementById('editProfileAvatarImg');
+        const removeBtn = document.getElementById('removeAvatarBtn');
+        
+        avatarText.classList.add('hidden');
+        avatarImg.src = e.target.result;
+        avatarImg.classList.remove('hidden');
+        removeBtn.classList.remove('hidden');
+        
+        // Store for saving
+        profileState.pendingAvatar = e.target.result;
+        showToast('Photo selected! Click "Save Changes" to apply.');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeProfilePicture() {
+    const avatarText = document.getElementById('editProfileAvatar');
+    const avatarImg = document.getElementById('editProfileAvatarImg');
+    const removeBtn = document.getElementById('removeAvatarBtn');
+    
+    const initial = profileState.profile?.name?.charAt(0).toUpperCase() || 'U';
+    avatarText.textContent = initial;
+    avatarText.classList.remove('hidden');
+    avatarImg.src = '';
+    avatarImg.classList.add('hidden');
+    removeBtn.classList.add('hidden');
+    
+    // Mark for removal
+    profileState.pendingAvatar = null;
+    showToast('Photo will be removed when you save.');
 }
 
 function hideEditProfileModal() {
@@ -944,17 +1025,24 @@ async function saveProfile() {
     showLoading(true);
     
     try {
+        const profileData = {
+            name,
+            phone,
+            city,
+            handicapIndex: handicapIndex ? parseFloat(handicapIndex) : null,
+            homeCourse,
+            bio
+        };
+        
+        // Include avatar if changed
+        if (profileState.pendingAvatar !== undefined) {
+            profileData.avatar = profileState.pendingAvatar;
+        }
+        
         const response = await fetch('/api/profile', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name,
-                phone,
-                city,
-                handicapIndex: handicapIndex ? parseFloat(handicapIndex) : null,
-                homeCourse,
-                bio
-            })
+            body: JSON.stringify(profileData)
         });
         
         const data = await response.json();
@@ -965,8 +1053,14 @@ async function saveProfile() {
             
             // Update authState and UI
             authState.user.name = name;
+            if (profileState.pendingAvatar !== undefined) {
+                authState.user.avatar = profileState.pendingAvatar;
+            }
             document.getElementById('welcomeUserName').textContent = name;
             document.getElementById('accountBtnText').textContent = name.split(' ')[0];
+            
+            // Reset pending avatar
+            profileState.pendingAvatar = undefined;
             
             loadProfile();
         } else {
@@ -1178,11 +1272,18 @@ function renderEvents(events) {
         return `
         <div class="bg-white rounded-xl card-shadow overflow-hidden cursor-pointer hover:shadow-md transition ${isPast ? 'opacity-60' : ''}" 
              onclick="viewEvent(${event.id})">
+            ${event.imageUrl ? `
+            <div class="h-32 bg-gray-100">
+                <img src="${event.imageUrl}" alt="${event.title}" class="w-full h-full object-cover">
+            </div>
+            ` : ''}
             <div class="p-4">
                 <div class="flex items-start gap-3">
+                    ${!event.imageUrl ? `
                     <div class="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
                         <span class="text-2xl">${categoryIcons[event.category] || '📅'}</span>
                     </div>
+                    ` : ''}
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium capitalize">
@@ -1585,6 +1686,40 @@ function showCreateEventModal() {
 
 function hideCreateEventModal() {
     document.getElementById('createEventModal').classList.add('hidden');
+    resetEventPosterUI();
+}
+
+// Event Poster Functions
+function handleEventPosterUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Image size must be less than 5MB');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        eventsState.eventPoster = e.target.result;
+        document.getElementById('eventPosterPreview').src = e.target.result;
+        document.getElementById('eventPosterPreviewContainer').classList.remove('hidden');
+        document.getElementById('eventPosterButtons').classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeEventPoster() {
+    eventsState.eventPoster = null;
+    resetEventPosterUI();
+}
+
+function resetEventPosterUI() {
+    eventsState.eventPoster = null;
+    document.getElementById('eventPosterPreview').src = '';
+    document.getElementById('eventPosterPreviewContainer').classList.add('hidden');
+    document.getElementById('eventPosterButtons').classList.remove('hidden');
+    document.getElementById('eventPosterInput').value = '';
 }
 
 async function submitEvent() {
@@ -1607,22 +1742,29 @@ async function submitEvent() {
     showLoading(true);
     
     try {
+        const eventData = {
+            title,
+            category,
+            description,
+            eventDate,
+            eventTime,
+            venue,
+            maxParticipants: maxParticipants ? parseInt(maxParticipants) : null,
+            entryFee,
+            contactPerson,
+            registrationDeadline,
+            organizer: authState.user.name || authState.user.email
+        };
+        
+        // Include poster if uploaded
+        if (eventsState.eventPoster) {
+            eventData.imageUrl = eventsState.eventPoster;
+        }
+        
         const response = await fetch('/api/events', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                title,
-                category,
-                description,
-                eventDate,
-                eventTime,
-                venue,
-                maxParticipants: maxParticipants ? parseInt(maxParticipants) : null,
-                entryFee,
-                contactPerson,
-                registrationDeadline,
-                organizer: authState.user.name || authState.user.email
-            })
+            body: JSON.stringify(eventData)
         });
         
         const data = await response.json();
@@ -1649,7 +1791,8 @@ async function submitEvent() {
 let forumState = {
     posts: [],
     currentPost: null,
-    currentCategory: 'all'
+    currentCategory: 'all',
+    postImage: null
 };
 
 function showForum() {
@@ -1726,15 +1869,23 @@ function renderForumPosts(posts) {
         'equipment': '🏌️'
     };
     
-    container.innerHTML = posts.map(post => `
+    container.innerHTML = posts.map(post => {
+        const displayName = post.username ? `@${post.username}` : post.userName;
+        const studentIdBadge = post.studentId ? `<span class="text-xs text-gray-400">(${post.studentId})</span>` : '';
+        const avatarHtml = post.userAvatar 
+            ? `<img src="${post.userAvatar}" alt="${displayName}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">`
+            : `<div class="w-10 h-10 bg-golf-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-lg">${(post.username || post.userName || '?').charAt(0).toUpperCase()}</span>
+               </div>`;
+        
+        return `
         <div class="bg-white rounded-xl card-shadow p-4 cursor-pointer hover:shadow-md transition" onclick="viewPost('${post.id}')">
             <div class="flex items-start gap-3">
-                <div class="w-10 h-10 bg-golf-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span class="text-lg">${post.userName.charAt(0).toUpperCase()}</span>
-                </div>
+                ${avatarHtml}
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="font-medium text-gray-800 text-sm">${post.userName}</span>
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="font-medium text-gray-800 text-sm">${displayName}</span>
+                        ${studentIdBadge}
                         <span class="text-xs text-gray-400">•</span>
                         <span class="text-xs text-gray-400">${formatTimeAgo(post.createdAt)}</span>
                     </div>
@@ -1743,6 +1894,7 @@ function renderForumPosts(posts) {
                     </div>
                     <h3 class="font-semibold text-gray-800 mb-1 line-clamp-2">${escapeHtml(post.title)}</h3>
                     <p class="text-gray-600 text-sm line-clamp-2">${escapeHtml(post.content)}</p>
+                    ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-2 w-full max-h-32 object-cover rounded-lg">` : ''}
                     <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
                         <span class="flex items-center gap-1 ${post.isLiked ? 'text-red-500' : ''}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="${post.isLiked ? 'currentColor' : 'none'}" viewBox="0 0 24 24" stroke="currentColor">
@@ -1760,7 +1912,7 @@ function renderForumPosts(posts) {
                 </div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function filterForumCategory(category) {
@@ -1794,6 +1946,7 @@ function showCreatePostModal() {
 
 function hideCreatePostModal() {
     document.getElementById('createPostModal').classList.add('hidden');
+    resetPostImageUI();
 }
 
 async function submitForumPost() {
@@ -1809,16 +1962,22 @@ async function submitForumPost() {
     showLoading(true);
     
     try {
+        const postData = { title, content, category };
+        if (forumState.postImage) {
+            postData.image = forumState.postImage;
+        }
+        
         const response = await fetch('/api/forum/posts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, content, category })
+            body: JSON.stringify(postData)
         });
         
         const data = await response.json();
         
         if (data.success) {
             hideCreatePostModal();
+            resetPostImageUI();
             showToast('Post created successfully!');
             loadForumPosts(forumState.currentCategory);
         } else {
@@ -1829,6 +1988,40 @@ async function submitForumPost() {
     }
     
     showLoading(false);
+}
+
+// Post Image Functions
+function handlePostImageUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('Image size must be less than 5MB');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            forumState.postImage = e.target.result;
+            document.getElementById('postImagePreview').src = e.target.result;
+            document.getElementById('postImagePreviewContainer').classList.remove('hidden');
+            document.getElementById('postImageButtons').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removePostImage() {
+    forumState.postImage = null;
+    resetPostImageUI();
+}
+
+function resetPostImageUI() {
+    forumState.postImage = null;
+    document.getElementById('postImagePreview').src = '';
+    document.getElementById('postImagePreviewContainer').classList.add('hidden');
+    document.getElementById('postImageButtons').classList.remove('hidden');
+    document.getElementById('postImageInput').value = '';
+    document.getElementById('postCameraInput').value = '';
 }
 
 async function viewPost(postId) {
@@ -1862,15 +2055,24 @@ function renderPostDetail(post) {
         'equipment': '🏌️'
     };
     
+    const displayName = post.username ? `@${post.username}` : post.userName;
+    const studentIdBadge = post.studentId ? `<span class="text-xs text-gray-400">(${post.studentId})</span>` : '';
+    const avatarHtml = post.userAvatar 
+        ? `<img src="${post.userAvatar}" alt="${displayName}" class="w-12 h-12 rounded-full object-cover">`
+        : `<div class="w-12 h-12 bg-golf-100 rounded-full flex items-center justify-center">
+                <span class="text-xl">${(post.username || post.userName || '?').charAt(0).toUpperCase()}</span>
+           </div>`;
+    
     const container = document.getElementById('viewPostContent');
     container.innerHTML = `
         <div class="mb-4">
             <div class="flex items-center gap-3 mb-3">
-                <div class="w-12 h-12 bg-golf-100 rounded-full flex items-center justify-center">
-                    <span class="text-xl">${post.userName.charAt(0).toUpperCase()}</span>
-                </div>
+                ${avatarHtml}
                 <div>
-                    <div class="font-semibold text-gray-800">${post.userName}</div>
+                    <div class="font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+                        ${displayName}
+                        ${studentIdBadge}
+                    </div>
                     <div class="text-xs text-gray-400">${formatTimeAgo(post.createdAt)}</div>
                 </div>
             </div>
@@ -1879,6 +2081,7 @@ function renderPostDetail(post) {
             </span>
             <h2 class="text-xl font-bold text-gray-800 mb-2">${escapeHtml(post.title)}</h2>
             <p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+            ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-3 w-full rounded-xl">` : ''}
         </div>
         
         <!-- Like Button -->
@@ -1897,18 +2100,25 @@ function renderPostDetail(post) {
         <div class="mt-4">
             <h3 class="font-semibold text-gray-800 mb-3">Comments</h3>
             <div id="commentsContainer" class="space-y-3">
-                ${post.comments && post.comments.length > 0 ? post.comments.map(comment => `
+                ${post.comments && post.comments.length > 0 ? post.comments.map(comment => {
+                    const commentDisplayName = comment.username ? `@${comment.username}` : comment.userName;
+                    const commentStudentId = comment.studentId ? `<span class="text-xs text-gray-400">(${comment.studentId})</span>` : '';
+                    const commentAvatarHtml = comment.userAvatar 
+                        ? `<img src="${comment.userAvatar}" alt="${commentDisplayName}" class="w-6 h-6 rounded-full object-cover">`
+                        : `<div class="w-6 h-6 bg-golf-200 rounded-full flex items-center justify-center text-xs font-medium">
+                                ${(comment.username || comment.userName || '?').charAt(0).toUpperCase()}
+                           </div>`;
+                    return `
                     <div class="bg-gray-50 rounded-xl p-3">
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-6 h-6 bg-golf-200 rounded-full flex items-center justify-center text-xs font-medium">
-                                ${comment.userName.charAt(0).toUpperCase()}
-                            </div>
-                            <span class="font-medium text-sm text-gray-800">${comment.userName}</span>
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                            ${commentAvatarHtml}
+                            <span class="font-medium text-sm text-gray-800">${commentDisplayName}</span>
+                            ${commentStudentId}
                             <span class="text-xs text-gray-400">${formatTimeAgo(comment.createdAt)}</span>
                         </div>
                         <p class="text-gray-600 text-sm pl-8">${escapeHtml(comment.content)}</p>
                     </div>
-                `).join('') : '<p class="text-gray-400 text-sm text-center py-4">No comments yet. Be the first to comment!</p>'}
+                `}).join('') : '<p class="text-gray-400 text-sm text-center py-4">No comments yet. Be the first to comment!</p>'}
             </div>
         </div>
     `;
@@ -2110,9 +2320,9 @@ function hideAllSteps() {
 
 async function loadLandingStats() {
     try {
-        // Get courses count
-        const courseCount = Object.values(gameState.courses).flat().length || 17;
-        const regionCount = Object.keys(gameState.courses).length || 6;
+        // Get courses count from loaded data
+        const courseCount = Object.values(gameState.courses).flat().length;
+        const regionCount = Object.keys(gameState.courses).length;
         
         document.getElementById('statCourses').textContent = courseCount;
         document.getElementById('statRegions').textContent = regionCount;
@@ -2177,6 +2387,7 @@ async function fetchCourses() {
         const response = await fetch('/api/courses');
         gameState.courses = await response.json();
         populateRegions();
+        loadLandingStats(); // Load stats after courses are fetched
     } catch (error) {
         showToast('Failed to load courses. Please refresh.');
         console.error(error);
