@@ -2032,7 +2032,7 @@ def verify_register():
         cursor.execute('UPDATE User SET isVerified = 1, updatedAt = ? WHERE email = ?', (datetime.now(), email))
         
         # Get user data
-        cursor.execute('SELECT id, name, email FROM User WHERE email = ?', (email,))
+        cursor.execute('SELECT id, name, email, username FROM User WHERE email = ?', (email,))
         user = cursor.fetchone()
         conn.commit()
         conn.close()
@@ -2045,7 +2045,7 @@ def verify_register():
             return jsonify({
                 'success': True, 
                 'message': 'Email verified successfully',
-                'user': {'id': user[0], 'name': user[1], 'email': user[2]}
+                'user': {'id': user[0], 'name': user[1], 'email': user[2], 'username': user[3]}
             })
     
     return jsonify({'success': False, 'message': 'Invalid or expired OTP'}), 400
@@ -2104,7 +2104,7 @@ def verify_login():
     if verify_otp(email, otp, 'login'):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute('SELECT id, name, email FROM User WHERE email = ?', (email,))
+        cursor.execute('SELECT id, name, email, username FROM User WHERE email = ?', (email,))
         user = cursor.fetchone()
         conn.close()
         
@@ -2116,7 +2116,7 @@ def verify_login():
             return jsonify({
                 'success': True, 
                 'message': 'Login successful',
-                'user': {'id': user[0], 'name': user[1], 'email': user[2]}
+                'user': {'id': user[0], 'name': user[1], 'email': user[2], 'username': user[3]}
             })
     
     return jsonify({'success': False, 'message': 'Invalid or expired OTP'}), 400
@@ -2249,12 +2249,20 @@ def logout():
 def get_current_user():
     """Get current logged in user"""
     if 'user_id' in session:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT username FROM User WHERE id = ?', (session.get('user_id'),))
+        result = cursor.fetchone()
+        conn.close()
+        username = result[0] if result else None
+        
         return jsonify({
             'authenticated': True,
             'user': {
                 'id': session.get('user_id'),
                 'name': session.get('user_name'),
-                'email': session.get('user_email')
+                'email': session.get('user_email'),
+                'username': username
             }
         })
     return jsonify({'authenticated': False})

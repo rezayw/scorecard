@@ -166,7 +166,9 @@ async function checkAuthStatus() {
 
 function updateUIForLoggedInUser() {
     if (authState.user) {
-        document.getElementById('accountBtnText').textContent = authState.user.name.split(' ')[0];
+        // Show username if available, otherwise first name
+        const displayName = authState.user.username ? `@${authState.user.username}` : authState.user.name.split(' ')[0];
+        document.getElementById('accountBtnText').textContent = displayName;
         document.getElementById('welcomeUserName').textContent = authState.user.name;
         document.getElementById('userWelcomeCard').classList.remove('hidden');
         document.getElementById('quickStatsCard').classList.add('hidden');
@@ -373,6 +375,59 @@ function updatePasswordMatch() {
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
     const statusEl = document.getElementById('passwordMatchStatus');
+    
+    if (!statusEl) return;
+    
+    if (confirmPassword.length === 0) {
+        statusEl.classList.add('hidden');
+        return;
+    }
+    
+    statusEl.classList.remove('hidden');
+    if (password === confirmPassword) {
+        statusEl.textContent = '\u2713 Passwords match';
+        statusEl.classList.remove('text-red-500');
+        statusEl.classList.add('text-green-500');
+    } else {
+        statusEl.textContent = '\u2717 Passwords do not match';
+        statusEl.classList.remove('text-green-500');
+        statusEl.classList.add('text-red-500');
+    }
+}
+
+function updateResetPasswordChecklist() {
+    const password = document.getElementById('newPassword').value;
+    const checks = validatePasswordComplexity(password);
+    
+    const updateCheck = (id, passed) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const icon = el.querySelector('.check-icon');
+            if (passed) {
+                el.classList.remove('text-gray-400', 'text-red-500');
+                el.classList.add('text-green-500');
+                if (icon) icon.textContent = '\u2713';
+            } else {
+                el.classList.remove('text-green-500', 'text-red-500');
+                el.classList.add('text-gray-400');
+                if (icon) icon.textContent = '\u25cb';
+            }
+        }
+    };
+    
+    updateCheck('reset-check-length', checks.length);
+    updateCheck('reset-check-uppercase', checks.uppercase);
+    updateCheck('reset-check-lowercase', checks.lowercase);
+    updateCheck('reset-check-number', checks.number);
+    updateCheck('reset-check-special', checks.special);
+    
+    updateResetPasswordMatch();
+}
+
+function updateResetPasswordMatch() {
+    const password = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmNewPassword').value;
+    const statusEl = document.getElementById('resetPasswordMatchStatus');
     
     if (!statusEl) return;
     
@@ -1057,7 +1112,9 @@ async function saveProfile() {
                 authState.user.avatar = profileState.pendingAvatar;
             }
             document.getElementById('welcomeUserName').textContent = name;
-            document.getElementById('accountBtnText').textContent = name.split(' ')[0];
+            // Show username if available, otherwise first name
+            const displayName = authState.user.username ? `@${authState.user.username}` : name.split(' ')[0];
+            document.getElementById('accountBtnText').textContent = displayName;
             
             // Reset pending avatar
             profileState.pendingAvatar = undefined;
@@ -1075,9 +1132,9 @@ async function saveProfile() {
 }
 
 function showChangePasswordModal() {
-    document.getElementById('currentPassword').value = '';
-    document.getElementById('newPassword').value = '';
-    document.getElementById('confirmNewPassword').value = '';
+    document.getElementById('changeCurrentPassword').value = '';
+    document.getElementById('changeNewPassword').value = '';
+    document.getElementById('changeConfirmNewPassword').value = '';
     document.getElementById('changePasswordModal').classList.remove('hidden');
 }
 
@@ -1086,9 +1143,9 @@ function hideChangePasswordModal() {
 }
 
 async function changePassword() {
-    const currentPassword = document.getElementById('currentPassword').value;
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+    const currentPassword = document.getElementById('changeCurrentPassword').value;
+    const newPassword = document.getElementById('changeNewPassword').value;
+    const confirmNewPassword = document.getElementById('changeConfirmNewPassword').value;
     
     if (!currentPassword || !newPassword || !confirmNewPassword) {
         showToast('Please fill all fields');

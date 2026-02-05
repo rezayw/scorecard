@@ -16,34 +16,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        golf: {
-                            50: '#F3F1EC',
-                            100: '#E8E4DA',
-                            200: '#F3F1EC',
-                            300: '#F3F1EC',
-                            400: '#E6C36A',
-                            500: '#E6C36A',
-                            600: '#C9A84E',
-                            700: '#C9A84E',
-                            800: '#0F3B2E',
-                            900: '#0A241C',
-                            950: '#0F3B2E'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Bebas Neue', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind CSS (Built for Production) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind-built.css') }}">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
@@ -554,16 +528,16 @@
                 
                 <!-- Select Region -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Region</label>
-                    <select id="regionSelect" onchange="loadCourses()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
+                    <label for="regionSelect" class="block text-sm font-medium text-gray-700 mb-2">Select Region</label>
+                    <select id="regionSelect" name="regionSelect" onchange="loadCourses()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
                         <option value="">-- Select Region --</option>
                     </select>
                 </div>
                 
                 <!-- Select Course -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Golf Course</label>
-                    <select id="courseSelect" onchange="selectCourse()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white" disabled>
+                    <label for="courseSelect" class="block text-sm font-medium text-gray-700 mb-2">Select Golf Course</label>
+                    <select id="courseSelect" name="courseSelect" onchange="selectCourse()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white" disabled>
                         <option value="">-- Select Course --</option>
                     </select>
                 </div>
@@ -581,8 +555,8 @@
                 
                 <!-- Hole Count -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Number of Holes</label>
-                    <div class="grid grid-cols-2 gap-3">
+                    <label id="holeCountLabel" class="block text-sm font-medium text-gray-700 mb-2">Number of Holes</label>
+                    <div class="grid grid-cols-2 gap-3" role="group" aria-labelledby="holeCountLabel">
                         <button onclick="selectHoles(9)" class="hole-btn p-4 border-2 border-gray-200 rounded-xl text-center transition hover:border-golf-500">
                             <span class="text-2xl block mb-1">9️⃣</span>
                             <span class="font-medium">9 Holes</span>
@@ -596,8 +570,8 @@
                 
                 <!-- Player Count -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Number of Players (1-10)</label>
-                    <div class="flex items-center gap-3">
+                    <label id="playerCountLabel" class="block text-sm font-medium text-gray-700 mb-2">Number of Players (1-10)</label>
+                    <div class="flex items-center gap-3" role="group" aria-labelledby="playerCountLabel">
                         <button onclick="adjustPlayerCount(-1)" class="w-12 h-12 bg-gray-200 rounded-xl text-xl font-bold hover:bg-gray-300 transition">−</button>
                         <span id="playerCount" class="text-2xl font-bold text-golf-700 w-8 text-center">1</span>
                         <button onclick="adjustPlayerCount(1)" class="w-12 h-12 bg-gray-200 rounded-xl text-xl font-bold hover:bg-gray-300 transition">+</button>
@@ -606,8 +580,8 @@
                 
                 <!-- Player Names -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Player Details</label>
-                    <div id="playerInputs" class="space-y-3">
+                    <label id="playerDetailsLabel" class="block text-sm font-medium text-gray-700 mb-2">Player Details</label>
+                    <div id="playerInputs" class="space-y-3" role="group" aria-labelledby="playerDetailsLabel">
                         <!-- Dynamic player inputs -->
                     </div>
                 </div>
@@ -890,12 +864,12 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input type="email" id="loginEmail" placeholder="your@email.com" 
+                            <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="loginEmail" name="loginEmail" placeholder="your@email.com" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                             <div class="relative">
                                 <input type="password" id="loginPassword" placeholder="••••••••" 
                                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 pr-12">
@@ -945,36 +919,36 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                            <input type="text" id="registerName" placeholder="John Doe" 
+                            <label for="registerName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input type="text" id="registerName" name="registerName" placeholder="John Doe" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                            <input type="text" id="registerUsername" placeholder="johndoe123" 
+                            <label for="registerUsername" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input type="text" id="registerUsername" name="registerUsername" placeholder="johndoe123" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0"
                                    pattern="[a-zA-Z0-9_]+" minlength="3" maxlength="30">
                             <p class="text-xs text-gray-500 mt-1">Min 3 characters. Letters, numbers, underscore only.</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Student ID (ITB)</label>
-                            <input type="text" id="registerStudentId" placeholder="13520123" 
+                            <label for="registerStudentId" class="block text-sm font-medium text-gray-700 mb-1">Student ID (ITB)</label>
+                            <input type="text" id="registerStudentId" name="registerStudentId" placeholder="13520123" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0"
                                    maxlength="20">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input type="email" id="registerEmail" placeholder="your@gmail.com or your@itb.ac.id" 
+                            <label for="registerEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="registerEmail" name="registerEmail" placeholder="your@gmail.com or your@itb.ac.id" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                             <p class="text-xs text-gray-500 mt-1">Only Gmail and ITB email allowed.</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                            <input type="tel" id="registerPhone" placeholder="+62 812 3456 7890" 
+                            <label for="registerPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                            <input type="tel" id="registerPhone" name="registerPhone" placeholder="+62 812 3456 7890" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <label for="registerPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                             <div class="relative">
                                 <input type="password" id="registerPassword" placeholder="Min. 8 characters" 
                                        class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 pr-12"
@@ -1006,8 +980,8 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                            <input type="password" id="registerConfirmPassword" placeholder="Confirm password" 
+                            <label for="registerConfirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                            <input type="password" id="registerConfirmPassword" name="registerConfirmPassword" placeholder="Confirm password" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0"
                                    oninput="updatePasswordMatch()">
                             <p id="passwordMatchStatus" class="text-xs mt-1 hidden"></p>
@@ -1037,14 +1011,14 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2 text-center">Enter OTP Code</label>
-                            <div class="flex justify-center gap-2">
-                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="0" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
-                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="1" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
-                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="2" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
-                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="3" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
-                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="4" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
-                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="5" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
+                            <label class="block text-sm font-medium text-gray-700 mb-2 text-center" id="otpLabel">Enter OTP Code</label>
+                            <div class="flex justify-center gap-2" role="group" aria-labelledby="otpLabel">
+                                <input type="text" maxlength="1" id="otp-0" name="otp-0" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="0" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)" aria-label="OTP digit 1">
+                                <input type="text" maxlength="1" id="otp-1" name="otp-1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="1" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)" aria-label="OTP digit 2">
+                                <input type="text" maxlength="1" id="otp-2" name="otp-2" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="2" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)" aria-label="OTP digit 3">
+                                <input type="text" maxlength="1" id="otp-3" name="otp-3" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="3" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)" aria-label="OTP digit 4">
+                                <input type="text" maxlength="1" id="otp-4" name="otp-4" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="4" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)" aria-label="OTP digit 5">
+                                <input type="text" maxlength="1" id="otp-5" name="otp-5" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="5" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)" aria-label="OTP digit 6">
                             </div>
                         </div>
                         
@@ -1074,8 +1048,8 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input type="email" id="forgotEmail" placeholder="your@email.com" 
+                            <label for="forgotEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="forgotEmail" name="forgotEmail" placeholder="your@email.com" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                         </div>
                         
@@ -1102,10 +1076,11 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                            <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                             <div class="relative">
-                                <input type="password" id="newPassword" placeholder="Min. 6 characters" 
-                                       class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 pr-12">
+                                <input type="password" id="newPassword" name="newPassword" placeholder="Min. 8 characters" 
+                                       class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 pr-12"
+                                       oninput="updateResetPasswordChecklist()">
                                 <button type="button" onclick="togglePassword('newPassword')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1113,11 +1088,31 @@
                                     </svg>
                                 </button>
                             </div>
+                            <!-- Password Checklist for Reset -->
+                            <div id="resetPasswordChecklist" class="mt-2 text-xs space-y-1">
+                                <div id="reset-check-length" class="flex items-center gap-2 text-gray-400">
+                                    <span class="check-icon">○</span> At least 8 characters
+                                </div>
+                                <div id="reset-check-uppercase" class="flex items-center gap-2 text-gray-400">
+                                    <span class="check-icon">○</span> One uppercase letter (A-Z)
+                                </div>
+                                <div id="reset-check-lowercase" class="flex items-center gap-2 text-gray-400">
+                                    <span class="check-icon">○</span> One lowercase letter (a-z)
+                                </div>
+                                <div id="reset-check-number" class="flex items-center gap-2 text-gray-400">
+                                    <span class="check-icon">○</span> One number (0-9)
+                                </div>
+                                <div id="reset-check-special" class="flex items-center gap-2 text-gray-400">
+                                    <span class="check-icon">○</span> One special character (!@#$%^&*)
+                                </div>
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                            <input type="password" id="confirmNewPassword" placeholder="Confirm password" 
-                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                            <label for="confirmNewPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                            <input type="password" id="confirmNewPassword" name="confirmNewPassword" placeholder="Confirm password" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0"
+                                   oninput="updateResetPasswordMatch()">
+                            <p id="resetPasswordMatchStatus" class="text-xs mt-1 hidden"></p>
                         </div>
                         
                         <button onclick="handleResetPassword()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
@@ -1164,39 +1159,39 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                        <input type="text" id="editProfileName" placeholder="Your full name" 
+                        <label for="editProfileName" class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                        <input type="text" id="editProfileName" name="editProfileName" placeholder="Your full name" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                        <input type="tel" id="editProfilePhone" placeholder="e.g., 08123456789" 
+                        <label for="editProfilePhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input type="tel" id="editProfilePhone" name="editProfilePhone" placeholder="e.g., 08123456789" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
-                        <input type="text" id="editProfileCity" placeholder="e.g., Jakarta" 
+                        <label for="editProfileCity" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                        <input type="text" id="editProfileCity" name="editProfileCity" placeholder="e.g., Jakarta" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Handicap Index</label>
-                        <input type="number" id="editProfileHandicap" placeholder="e.g., 18.5" step="0.1" min="0" max="54"
+                        <label for="editProfileHandicap" class="block text-sm font-medium text-gray-700 mb-1">Handicap Index</label>
+                        <input type="number" id="editProfileHandicap" name="editProfileHandicap" placeholder="e.g., 18.5" step="0.1" min="0" max="54"
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Home Course</label>
-                        <select id="editProfileHomeCourse" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
+                        <label for="editProfileHomeCourse" class="block text-sm font-medium text-gray-700 mb-1">Home Course</label>
+                        <select id="editProfileHomeCourse" name="editProfileHomeCourse" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
                             <option value="">-- Select your home course --</option>
                         </select>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                        <textarea id="editProfileBio" rows="3" placeholder="Tell us about your golf journey..."
+                        <label for="editProfileBio" class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                        <textarea id="editProfileBio" name="editProfileBio" rows="3" placeholder="Tell us about your golf journey..."
                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 resize-none"></textarea>
                     </div>
                     
@@ -1214,18 +1209,18 @@
                 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                        <input type="password" id="currentPassword" placeholder="Enter current password" 
+                        <label for="changeCurrentPassword" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                        <input type="password" id="changeCurrentPassword" name="changeCurrentPassword" placeholder="Enter current password" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                        <input type="password" id="newPassword" placeholder="Enter new password" 
+                        <label for="changeNewPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <input type="password" id="changeNewPassword" name="changeNewPassword" placeholder="Enter new password" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                        <input type="password" id="confirmNewPassword" placeholder="Confirm new password" 
+                        <label for="changeConfirmNewPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                        <input type="password" id="changeConfirmNewPassword" name="changeConfirmNewPassword" placeholder="Confirm new password" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                 </div>
@@ -1254,21 +1249,21 @@
                 <div class="p-6 space-y-4">
                     <!-- Event Template Selection -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Use Template (Optional)</label>
-                        <select id="eventTemplate" onchange="applyEventTemplate()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 bg-white">
+                        <label for="eventTemplate" class="block text-sm font-medium text-gray-700 mb-2">Use Template (Optional)</label>
+                        <select id="eventTemplate" name="eventTemplate" onchange="applyEventTemplate()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 bg-white">
                             <option value="">-- Select a template --</option>
                         </select>
                     </div>
                     
                     <div class="border-t pt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
-                        <input type="text" id="eventTitle" placeholder="e.g., Monthly Medal January 2025" 
+                        <label for="eventTitle" class="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                        <input type="text" id="eventTitle" name="eventTitle" placeholder="e.g., Monthly Medal January 2025" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                        <select id="eventCategory" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 bg-white">
+                        <label for="eventCategory" class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                        <select id="eventCategory" name="eventCategory" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 bg-white">
                             <option value="tournament">🏆 Tournament</option>
                             <option value="monthly-medal">🎖️ Monthly Medal</option>
                             <option value="corporate">🏢 Corporate Outing</option>
@@ -1278,14 +1273,14 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea id="eventDescription" rows="3" placeholder="Describe your event..."
+                        <label for="eventDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="eventDescription" name="eventDescription" rows="3" placeholder="Describe your event..."
                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 resize-none"></textarea>
                     </div>
                     
                     <!-- Event Poster Upload -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Event Poster (optional)</label>
+                        <label for="eventPosterInput" class="block text-sm font-medium text-gray-700 mb-1">Event Poster (optional)</label>
                         <div id="eventPosterPreviewContainer" class="hidden mb-3">
                             <div class="relative">
                                 <img id="eventPosterPreview" src="" alt="Event Poster" class="w-full h-40 object-cover rounded-xl">
@@ -1311,45 +1306,45 @@
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
-                            <input type="date" id="eventDate" 
+                            <label for="eventDate" class="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
+                            <input type="date" id="eventDate" name="eventDate" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
-                            <input type="time" id="eventTime" 
+                            <label for="eventTime" class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
+                            <input type="time" id="eventTime" name="eventTime" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                         </div>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Venue/Course *</label>
-                        <input type="text" id="eventVenue" placeholder="e.g., Pondok Indah Golf Course" 
+                        <label for="eventVenue" class="block text-sm font-medium text-gray-700 mb-1">Venue/Course *</label>
+                        <input type="text" id="eventVenue" name="eventVenue" placeholder="e.g., Pondok Indah Golf Course" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                     </div>
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Participants</label>
-                            <input type="number" id="eventMaxParticipants" placeholder="e.g., 72" min="1"
+                            <label for="eventMaxParticipants" class="block text-sm font-medium text-gray-700 mb-1">Max Participants</label>
+                            <input type="number" id="eventMaxParticipants" name="eventMaxParticipants" placeholder="e.g., 72" min="1"
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Entry Fee</label>
-                            <input type="text" id="eventFee" placeholder="e.g., Rp 500.000" 
+                            <label for="eventFee" class="block text-sm font-medium text-gray-700 mb-1">Entry Fee</label>
+                            <input type="text" id="eventFee" name="eventFee" placeholder="e.g., Rp 500.000" 
                                    class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                         </div>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-                        <input type="text" id="eventContact" placeholder="Name & phone number" 
+                        <label for="eventContact" class="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                        <input type="text" id="eventContact" name="eventContact" placeholder="Name & phone number" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Registration Deadline</label>
-                        <input type="date" id="eventRegDeadline" 
+                        <label for="eventRegDeadline" class="block text-sm font-medium text-gray-700 mb-1">Registration Deadline</label>
+                        <input type="date" id="eventRegDeadline" name="eventRegDeadline" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
                     </div>
                     
@@ -1376,8 +1371,8 @@
                 
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <select id="postCategory" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
+                        <label for="postCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="postCategory" name="postCategory" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
                             <option value="general">💬 General Discussion</option>
                             <option value="tips">🎯 Tips & Tricks</option>
                             <option value="course-review">⭐ Course Review</option>
@@ -1385,18 +1380,18 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input type="text" id="postTitle" placeholder="What's on your mind?" 
+                        <label for="postTitle" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input type="text" id="postTitle" name="postTitle" placeholder="What's on your mind?" 
                                class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                        <textarea id="postContent" rows="5" placeholder="Share your thoughts, tips, or experiences..."
+                        <label for="postContent" class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                        <textarea id="postContent" name="postContent" rows="5" placeholder="Share your thoughts, tips, or experiences..."
                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 resize-none"></textarea>
                     </div>
                     <!-- Image Upload Section -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Photo (optional)</label>
+                        <label for="postImageInput" class="block text-sm font-medium text-gray-700 mb-1">Photo (optional)</label>
                         <div id="postImagePreviewContainer" class="hidden mb-3">
                             <div class="relative inline-block">
                                 <img id="postImagePreview" src="" alt="Preview" class="w-full max-h-48 object-cover rounded-xl">
