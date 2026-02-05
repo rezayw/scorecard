@@ -1,6 +1,6 @@
 // Service Worker for Golf Scorecard PWA
-const CACHE_NAME = 'golf-scorecard-v1';
-const STATIC_CACHE = 'static-v1';
+const CACHE_NAME = 'golf-scorecard-v2';
+const STATIC_CACHE = 'static-v2';
 
 const STATIC_ASSETS = [
     '/',
@@ -46,18 +46,17 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // API requests - network first, then cache
+    // API requests - ALWAYS network, never cache (prevents stale data)
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(
             fetch(request)
-                .then(response => {
-                    // Clone the response for caching
-                    const clonedResponse = response.clone();
-                    caches.open(CACHE_NAME)
-                        .then(cache => cache.put(request, clonedResponse));
-                    return response;
+                .catch(() => {
+                    // Return error response for API failures when offline
+                    return new Response(JSON.stringify({ error: 'Offline' }), {
+                        status: 503,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
                 })
-                .catch(() => caches.match(request))
         );
         return;
     }

@@ -798,6 +798,38 @@ async function handleLogout() {
     showLoading(false);
 }
 
+// Delete Account Functions
+function showDeleteAccountModal() {
+    document.getElementById('deleteAccountModal').classList.remove('hidden');
+}
+
+function hideDeleteAccountModal() {
+    document.getElementById('deleteAccountModal').classList.add('hidden');
+}
+
+async function confirmDeleteAccount() {
+    showLoading(true);
+    hideDeleteAccountModal();
+    
+    try {
+        const response = await fetch('/api/auth/delete-account', { method: 'DELETE' });
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            authState.user = null;
+            showToast('Account deleted successfully');
+            window.location.reload();
+        } else {
+            showToast(data.error || 'Failed to delete account');
+        }
+    } catch (error) {
+        console.error('Delete account error:', error);
+        showToast('Failed to delete account');
+    }
+    
+    showLoading(false);
+}
+
 // =====================================
 // Profile Functions
 // =====================================
@@ -854,12 +886,16 @@ async function loadProfile() {
 async function loadProfileStats() {
     try {
         const response = await fetch('/api/profile/stats');
-        const data = await response.json();
         
-        if (response.ok) {
-            profileState.stats = data;
-            renderProfileStats(data);
+        // Check if response is OK before parsing JSON
+        if (!response.ok) {
+            // User not authenticated or other error
+            return;
         }
+        
+        const data = await response.json();
+        profileState.stats = data;
+        renderProfileStats(data);
     } catch (error) {
         console.error('Failed to load profile stats:', error);
     }
@@ -1929,6 +1965,7 @@ function renderForumPosts(posts) {
     
     container.innerHTML = posts.map(post => {
         const displayName = post.userUsername ? `@${post.userUsername}` : post.userName;
+        const genderIcon = post.userGender === 'male' ? '<span class="text-blue-500">♂</span>' : post.userGender === 'female' ? '<span class="text-pink-500">♀</span>' : '';
         const studentIdBadge = post.userStudentId ? `<span class="text-xs text-gray-400">(${post.userStudentId})</span>` : '';
         const avatarHtml = post.userAvatar 
             ? `<img src="${post.userAvatar}" alt="${displayName}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">`
@@ -1943,6 +1980,7 @@ function renderForumPosts(posts) {
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1 flex-wrap">
                         <span class="font-medium text-gray-800 text-sm">${displayName}</span>
+                        ${genderIcon}
                         ${studentIdBadge}
                         <span class="text-xs text-gray-400">•</span>
                         <span class="text-xs text-gray-400">${formatTimeAgo(post.createdAt)}</span>
@@ -2114,6 +2152,7 @@ function renderPostDetail(post) {
     };
     
     const displayName = post.userUsername ? `@${post.userUsername}` : post.userName;
+    const genderIcon = post.userGender === 'male' ? '<span class="text-blue-500">♂</span>' : post.userGender === 'female' ? '<span class="text-pink-500">♀</span>' : '';
     const studentIdBadge = post.userStudentId ? `<span class="text-xs text-gray-400">(${post.userStudentId})</span>` : '';
     const avatarHtml = post.userAvatar 
         ? `<img src="${post.userAvatar}" alt="${displayName}" class="w-12 h-12 rounded-full object-cover">`
@@ -2129,6 +2168,7 @@ function renderPostDetail(post) {
                 <div>
                     <div class="font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
                         ${displayName}
+                        ${genderIcon}
                         ${studentIdBadge}
                     </div>
                     <div class="text-xs text-gray-400">${formatTimeAgo(post.createdAt)}</div>
@@ -2160,6 +2200,7 @@ function renderPostDetail(post) {
             <div id="commentsContainer" class="space-y-3">
                 ${post.comments && post.comments.length > 0 ? post.comments.map(comment => {
                     const commentDisplayName = comment.userUsername ? `@${comment.userUsername}` : comment.userName;
+                    const commentGenderIcon = comment.userGender === 'male' ? '<span class="text-blue-500">♂</span>' : comment.userGender === 'female' ? '<span class="text-pink-500">♀</span>' : '';
                     const commentStudentId = comment.userStudentId ? `<span class="text-xs text-gray-400">(${comment.userStudentId})</span>` : '';
                     const commentAvatarHtml = comment.userAvatar 
                         ? `<img src="${comment.userAvatar}" alt="${commentDisplayName}" class="w-6 h-6 rounded-full object-cover">`
@@ -2171,6 +2212,7 @@ function renderPostDetail(post) {
                         <div class="flex items-center gap-2 mb-1 flex-wrap">
                             ${commentAvatarHtml}
                             <span class="font-medium text-sm text-gray-800">${commentDisplayName}</span>
+                            ${commentGenderIcon}
                             ${commentStudentId}
                             <span class="text-xs text-gray-400">${formatTimeAgo(comment.createdAt)}</span>
                         </div>

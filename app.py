@@ -49,6 +49,13 @@ def add_security_headers(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     if os.environ.get('FLASK_ENV') == 'production':
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    # Prevent caching for API responses to avoid stale data
+    if request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    
     return response
 
 # =====================================
@@ -2256,6 +2263,53 @@ def logout():
     return jsonify({'success': True, 'message': 'Logged out successfully'})
 
 
+@app.route('/api/auth/delete-account', methods=['DELETE'])
+def delete_account():
+    """Delete user account and all associated data"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session.get('user_id')
+    user_email = session.get('user_email')
+    
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Delete user's forum likes
+        cursor.execute('DELETE FROM ForumLike WHERE userId = ?', (user_id,))
+        
+        # Delete user's forum comments
+        cursor.execute('DELETE FROM ForumComment WHERE userId = ?', (user_id,))
+        
+        # Delete user's forum posts
+        cursor.execute('DELETE FROM ForumPost WHERE userId = ?', (user_id,))
+        
+        # Delete user's game results
+        cursor.execute('DELETE FROM GameResult WHERE playerId = ?', (user_id,))
+        
+        # Delete user's score history (uses playerEmail)
+        if user_email:
+            cursor.execute('DELETE FROM ScoreHistory WHERE playerEmail = ?', (user_email,))
+        
+        # Delete user's personal score history
+        cursor.execute('DELETE FROM UserScoreHistory WHERE userId = ?', (user_id,))
+        
+        # Delete user account
+        cursor.execute('DELETE FROM User WHERE id = ?', (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        # Clear session
+        session.clear()
+        
+        return jsonify({'success': True, 'message': 'Account deleted successfully'})
+    except Exception as e:
+        app.logger.error(f"Delete account error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/auth/me')
 def get_current_user():
     """Get current logged in user"""
@@ -2393,39 +2447,50 @@ def get_profile_stats():
     
     user_id = session['user_id']
     
-    # Get total rounds played
+    # Get user's name and email
+    cursor.execute('SELECT name, email FROM User WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+    
+    user_name = user['name']
+    user_email = user['email']
+    
+    # Get total rounds played, best score, avg score from GameResult
     cursor.execute('''
-        SELECT COUNT(DISTINCT g.id) as totalRounds,
-               MIN(p.totalScore) as bestScore,
-               AVG(p.totalScore) as avgScore
-        FROM Game g
-        JOIN Player p ON g.id = p.gameId
-        WHERE p.name = (SELECT name FROM User WHERE id = ?)
-    ''', (user_id,))
+        SELECT COUNT(DISTINCT gr.gameId) as totalRounds,
+               MIN(gr.grossScore) as bestScore,
+               AVG(gr.grossScore) as avgScore
+        FROM GameResult gr
+        JOIN Player p ON gr.playerId = p.id
+        WHERE p.name = ? OR p.email = ?
+    ''', (user_name, user_email))
     
     stats = cursor.fetchone()
     
     # Get courses played
     cursor.execute('''
-        SELECT COUNT(DISTINCT c.id) as coursesPlayed
-        FROM Game g
-        JOIN Course c ON g.courseId = c.id
-        JOIN Player p ON g.id = p.gameId
-        WHERE p.name = (SELECT name FROM User WHERE id = ?)
-    ''', (user_id,))
+        SELECT COUNT(DISTINCT g.courseId) as coursesPlayed
+        FROM GameResult gr
+        JOIN Game g ON gr.gameId = g.id
+        JOIN Player p ON gr.playerId = p.id
+        WHERE p.name = ? OR p.email = ?
+    ''', (user_name, user_email))
     
     courses = cursor.fetchone()
     
     # Get recent games
     cursor.execute('''
-        SELECT g.date, c.name as courseName, p.totalScore, g.holeCount
-        FROM Game g
+        SELECT g.playedAt as date, c.name as courseName, gr.grossScore as totalScore, g.holeCount
+        FROM GameResult gr
+        JOIN Game g ON gr.gameId = g.id
         JOIN Course c ON g.courseId = c.id
-        JOIN Player p ON g.id = p.gameId
-        WHERE p.name = (SELECT name FROM User WHERE id = ?)
-        ORDER BY g.date DESC
+        JOIN Player p ON gr.playerId = p.id
+        WHERE p.name = ? OR p.email = ?
+        ORDER BY g.playedAt DESC
         LIMIT 5
-    ''', (user_id,))
+    ''', (user_name, user_email))
     
     recent_games = [dict(row) for row in cursor.fetchall()]
     
@@ -2496,7 +2561,8 @@ def get_forum_posts():
         cursor.execute('''
             SELECT fp.id, fp.userId, fp.userName, fp.title, fp.content, fp.category,
                    fp.image, fp.likes, fp.commentCount, fp.createdAt, fp.updatedAt,
-                   u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
+                   u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar,
+                   u.gender as userGender
             FROM ForumPost fp
             LEFT JOIN User u ON fp.userId = u.id
             WHERE fp.category = ? 
@@ -2506,7 +2572,8 @@ def get_forum_posts():
         cursor.execute('''
             SELECT fp.id, fp.userId, fp.userName, fp.title, fp.content, fp.category,
                    fp.image, fp.likes, fp.commentCount, fp.createdAt, fp.updatedAt,
-                   u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
+                   u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar,
+                   u.gender as userGender
             FROM ForumPost fp
             LEFT JOIN User u ON fp.userId = u.id
             ORDER BY fp.createdAt DESC
@@ -2588,7 +2655,8 @@ def get_forum_post(post_id):
     cursor.execute('''
         SELECT fp.id, fp.userId, fp.userName, fp.title, fp.content, fp.category,
                fp.image, fp.likes, fp.commentCount, fp.createdAt, fp.updatedAt,
-               u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
+               u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar,
+               u.gender as userGender
         FROM ForumPost fp
         LEFT JOIN User u ON fp.userId = u.id
         WHERE fp.id = ?
@@ -2604,7 +2672,8 @@ def get_forum_post(post_id):
     # Get comments with user info
     cursor.execute('''
         SELECT fc.id, fc.postId, fc.userId, fc.userName, fc.content, fc.createdAt,
-               u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar
+               u.username as userUsername, u.studentId as userStudentId, u.avatar as userAvatar,
+               u.gender as userGender
         FROM ForumComment fc
         LEFT JOIN User u ON fc.userId = u.id
         WHERE fc.postId = ? 
@@ -2687,13 +2756,12 @@ def add_forum_comment(post_id):
     # Update comment count
     cursor.execute('UPDATE ForumPost SET commentCount = commentCount + 1 WHERE id = ?', (post_id,))
     
-    conn.commit()
-    conn.close()
-    
-    # Get user info for the comment response
-    cursor = conn.cursor()
+    # Get user info for the comment response BEFORE closing connection
     cursor.execute('SELECT username, studentId, avatar FROM User WHERE id = ?', (session['user_id'],))
     user_info = cursor.fetchone()
+    
+    conn.commit()
+    conn.close()
     
     return jsonify({
         'success': True,

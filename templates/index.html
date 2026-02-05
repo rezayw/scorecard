@@ -358,6 +358,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
+                        <button onclick="showDeleteAccountModal()" class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-gray-500">🗑️</span>
+                                <span class="text-gray-700">Delete Account</span>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                         <button onclick="handleLogout()" class="w-full flex items-center justify-between p-3 bg-red-50 rounded-xl hover:bg-red-100 transition">
                             <div class="flex items-center gap-3">
                                 <span class="text-red-500">🚪</span>
@@ -1207,6 +1216,19 @@
                     <button onclick="saveProfile()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
                         Save Changes
                     </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Delete Account Modal -->
+        <div id="deleteAccountModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-3xl p-6 slide-up">
+                <h3 class="text-lg font-bold text-red-600 mb-4">⚠️ Delete Account</h3>
+                <p class="text-gray-600 mb-4">Are you sure you want to delete your account? This action <strong>cannot be undone</strong>.</p>
+                <p class="text-gray-500 text-sm mb-6">All your data including game history, profile, and forum posts will be permanently deleted.</p>
+                <div class="flex gap-3">
+                    <button onclick="hideDeleteAccountModal()" class="flex-1 py-3 bg-gray-200 rounded-xl font-medium">Cancel</button>
+                    <button onclick="confirmDeleteAccount()" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">Delete Account</button>
                 </div>
             </div>
         </div>
