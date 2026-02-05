@@ -46,11 +46,120 @@
 <body class="bg-gray-100 min-h-screen safe-area-top safe-area-bottom">
     <div id="app" class="max-w-lg mx-auto bg-white min-h-screen shadow-xl">
         
-        <!-- Header -->
-        <header class="bg-golf-950 text-white px-4 py-4 sticky top-0 z-50">
+        <!-- Landing Page -->
+        <section id="landingPage" class="min-h-screen flex flex-col">
+            <!-- Hero Section -->
+            <div class="bg-gradient-to-br from-golf-950 via-golf-800 to-golf-600 text-white px-6 pt-12 pb-16 relative overflow-hidden">
+                <!-- Background Pattern -->
+                <div class="absolute inset-0 opacity-10">
+                    <div class="absolute top-10 left-10 text-8xl">⛳</div>
+                    <div class="absolute bottom-10 right-10 text-6xl">🏌️</div>
+                    <div class="absolute top-1/2 left-1/2 text-4xl">🏆</div>
+                </div>
+                
+                <div class="relative z-10 text-center">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-4 backdrop-blur-sm">
+                        <span class="text-4xl">⛳</span>
+                    </div>
+                    <h1 class="text-3xl font-bold mb-2">Golf Scorecard</h1>
+                    <p class="text-golf-200 text-lg">Indonesia Edition</p>
+                    <p class="text-golf-300 text-sm mt-2">Track your golf scores across premium Indonesian courses</p>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="px-4 -mt-8 relative z-20">
+                <div class="bg-white rounded-2xl shadow-lg p-4 grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-golf-600" id="statCourses">17</div>
+                        <div class="text-xs text-gray-500">Courses</div>
+                    </div>
+                    <div class="text-center border-x border-gray-100">
+                        <div class="text-2xl font-bold text-golf-600" id="statRegions">6</div>
+                        <div class="text-xs text-gray-500">Regions</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-golf-600" id="statGames">0</div>
+                        <div class="text-xs text-gray-500">Games Played</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="px-4 py-6 flex-1">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Features</h2>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div class="w-10 h-10 bg-golf-100 rounded-full flex items-center justify-center">
+                            <span class="text-lg">📊</span>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-800">Real-time Scoring</h3>
+                            <p class="text-xs text-gray-500">Track strokes for up to 10 players</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span class="text-lg">🎯</span>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-800">Handicap Calculation</h3>
+                            <p class="text-xs text-gray-500">USGA-compliant course handicap</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <span class="text-lg">📄</span>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-800">PDF Export</h3>
+                            <p class="text-xs text-gray-500">Download or email your scorecard</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span class="text-lg">📱</span>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-800">Works Offline</h3>
+                            <p class="text-xs text-gray-500">Install as app on your phone</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="px-4 pb-8 space-y-3">
+                <button onclick="showGameSetup()" class="w-full btn-primary text-white py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2">
+                    <span>🏌️</span> Start New Game
+                </button>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="showHistory()" class="py-3 bg-gray-100 text-gray-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-200 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        History
+                    </button>
+                    <button onclick="showCourseList()" class="py-3 bg-gray-100 text-gray-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-200 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Courses
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Header (hidden on landing) -->
+        <header id="appHeader" class="bg-golf-950 text-white px-4 py-4 sticky top-0 z-50 hidden">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <span class="text-2xl">⛳</span>
+                    <button onclick="showLanding()" class="p-1 hover:bg-golf-800 rounded-full transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </button>
                     <div>
                         <h1 class="text-lg font-bold">Golf Scorecard</h1>
                         <p class="text-xs text-golf-200">Indonesia Edition</p>
@@ -71,8 +180,8 @@
             </div>
         </header>
         
-        <!-- Progress Steps -->
-        <div class="bg-white px-4 py-3 border-b sticky top-16 z-40" id="progressBar">
+        <!-- Progress Steps (hidden on landing) -->
+        <div class="bg-white px-4 py-3 border-b sticky top-16 z-40 hidden" id="progressBar">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-1 text-xs">
                     <span class="step-indicator w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-gray-200" data-step="1">1</span>
@@ -94,10 +203,21 @@
         </div>
         
         <!-- Main Content -->
-        <main class="pb-24">
+        <main class="pb-24 hidden" id="mainContent">
+            
+            <!-- Course List Section -->
+            <section id="courseListSection" class="hidden p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">🏌️ Golf Courses</h2>
+                    <button onclick="showLanding()" class="text-golf-600 text-sm font-medium">Back</button>
+                </div>
+                <div id="courseListContainer" class="space-y-4">
+                    <!-- Dynamic course list -->
+                </div>
+            </section>
             
             <!-- Step 1: Game Setup -->
-            <section id="step1" class="p-4 slide-up">
+            <section id="step1" class="p-4 slide-up hidden">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">🏌️ Start New Game</h2>
                 
                 <!-- Select Region -->

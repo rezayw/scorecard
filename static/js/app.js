@@ -19,7 +19,107 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchCourses();
     updatePlayerInputs();
     loadHistory();
+    loadLandingStats();
 });
+
+// =====================================
+// Landing Page Functions
+// =====================================
+
+function showLanding() {
+    document.getElementById('landingPage').classList.remove('hidden');
+    document.getElementById('appHeader').classList.add('hidden');
+    document.getElementById('progressBar').classList.add('hidden');
+    document.getElementById('mainContent').classList.add('hidden');
+    hideAllSteps();
+    document.getElementById('courseListSection').classList.add('hidden');
+    loadLandingStats();
+}
+
+function showGameSetup() {
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.remove('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('courseListSection').classList.add('hidden');
+    showStep(1);
+}
+
+function showCourseList() {
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('courseListSection').classList.remove('hidden');
+    hideAllSteps();
+    renderCourseList();
+}
+
+function hideAllSteps() {
+    document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('step3').classList.add('hidden');
+}
+
+async function loadLandingStats() {
+    try {
+        // Get courses count
+        const courseCount = Object.values(gameState.courses).flat().length || 17;
+        const regionCount = Object.keys(gameState.courses).length || 6;
+        
+        document.getElementById('statCourses').textContent = courseCount;
+        document.getElementById('statRegions').textContent = regionCount;
+        
+        // Get games count from history
+        const response = await fetch('/api/games/history');
+        const history = await response.json();
+        document.getElementById('statGames').textContent = history.length || 0;
+    } catch (error) {
+        console.error('Failed to load stats:', error);
+    }
+}
+
+function renderCourseList() {
+    const container = document.getElementById('courseListContainer');
+    container.innerHTML = '';
+    
+    Object.entries(gameState.courses).forEach(([region, courses]) => {
+        const regionDiv = document.createElement('div');
+        regionDiv.className = 'mb-6';
+        regionDiv.innerHTML = `
+            <h3 class="text-sm font-semibold text-golf-600 uppercase tracking-wide mb-3">${region}</h3>
+            <div class="space-y-2">
+                ${courses.map(course => `
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 hover:border-golf-300 transition cursor-pointer" onclick="selectCourseFromList('${region}', '${course.id}')">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-medium text-gray-800">${course.name}</h4>
+                                <p class="text-sm text-gray-500">${course.location}</p>
+                            </div>
+                            <span class="text-xs bg-golf-100 text-golf-700 px-2 py-1 rounded-full">${course.holes} holes</span>
+                        </div>
+                        <div class="mt-2 flex gap-4 text-xs text-gray-500">
+                            <span>Par ${course.par}</span>
+                            <span>Rating: ${course.rating?.white || '-'}</span>
+                            <span>Slope: ${course.slope?.white || '-'}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        container.appendChild(regionDiv);
+    });
+}
+
+function selectCourseFromList(region, courseId) {
+    document.getElementById('regionSelect').value = region;
+    loadCourses();
+    setTimeout(() => {
+        document.getElementById('courseSelect').value = courseId;
+        selectCourse();
+        showGameSetup();
+    }, 100);
+}
 
 // =====================================
 // API Functions
@@ -581,14 +681,37 @@ function renderHistory(history) {
 }
 
 function showHistory() {
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('courseListSection').classList.add('hidden');
+    
     document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('step3').classList.add('hidden');
     document.getElementById('historySection').classList.remove('hidden');
     loadHistory();
 }
 
 function hideHistory() {
     document.getElementById('historySection').classList.add('hidden');
-    document.getElementById('step1').classList.remove('hidden');
+    showLanding();
+}
+
+function showStep(stepNum) {
+    document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('step3').classList.add('hidden');
+    document.getElementById('courseListSection').classList.add('hidden');
+    
+    const historySection = document.getElementById('historySection');
+    if (historySection) {
+        historySection.classList.add('hidden');
+    }
+    
+    document.getElementById(`step${stepNum}`).classList.remove('hidden');
+    updateStepIndicators(stepNum);
 }
 
 // =====================================
@@ -691,6 +814,12 @@ function resetGame() {
         results: null,
         gameId: null
     };
+    
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.remove('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('courseListSection').classList.add('hidden');
     
     document.getElementById('step1').classList.remove('hidden');
     document.getElementById('step2').classList.add('hidden');

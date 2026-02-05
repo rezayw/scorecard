@@ -1,8 +1,12 @@
-from flask import Flask, render_template, request, jsonify, send_file
-from datetime import datetime
+from flask import Flask, render_template, request, jsonify, send_file, session
+from datetime import datetime, timedelta
 import json
 import io
 import os
+import random
+import string
+import hashlib
+import secrets
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -15,8 +19,14 @@ from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
 import sqlite3
+import requests
 
 app = Flask(__name__, static_folder='static')
+app.secret_key = secrets.token_hex(32)
+
+# Resend API Configuration
+RESEND_API_KEY = 're_J6Sk5NGT_BKPmpS8pbYyY24vsF4hm1T2b'
+RESEND_FROM_EMAIL = 'Golf Scorecard <onboarding@resend.dev>'
 
 # Database initialization
 DB_PATH = os.path.join(os.path.dirname(__file__), 'prisma', 'dev.db')
