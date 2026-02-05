@@ -1,12 +1,16 @@
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session, g
 from datetime import datetime, timedelta
 import json
 import io
 import os
-import random
-import string
-import hashlib
+import re
 import secrets
+import bcrypt
+import bleach
+from functools import wraps
+from email_validator import validate_email, EmailNotValidError
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -22,11 +26,146 @@ import sqlite3
 import requests
 
 app = Flask(__name__, static_folder='static')
-app.secret_key = secrets.token_hex(32)
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 
-# Resend API Configuration
-RESEND_API_KEY = 're_J6Sk5NGT_BKPmpS8pbYyY24vsF4hm1T2b'
-RESEND_FROM_EMAIL = 'Golf Scorecard <onboarding@resend.dev>'
+# Rate limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# Security headers middleware
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    if os.environ.get('FLASK_ENV') == 'production':
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
+# =====================================
+# Input Validation & Sanitization
+# =====================================
+
+ALLOWED_TAGS = ['b', 'i', 'u', 'em', 'strong', 'p', 'br']
+ALLOWED_ATTRS = {}
+
+def sanitize_string(value, max_length=500, allow_html=False):
+    """Sanitize a string input"""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        value = str(value)
+    value = value.strip()
+    if len(value) > max_length:
+        value = value[:max_length]
+    if allow_html:
+        value = bleach.clean(value, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, strip=True)
+    else:
+        value = bleach.clean(value, tags=[], strip=True)
+    return value
+
+def sanitize_email(email):
+    """Validate and sanitize email address"""
+    if not email:
+        return None
+    email = sanitize_string(email, max_length=254).lower()
+    try:
+        valid = validate_email(email, check_deliverability=False)
+        return valid.normalized
+    except EmailNotValidError:
+        return None
+
+def sanitize_phone(phone):
+    """Sanitize phone number - only allow digits, +, -, spaces"""
+    if not phone:
+        return None
+    phone = sanitize_string(phone, max_length=20)
+    phone = re.sub(r'[^\d+\-\s()]', '', phone)
+    return phone if phone else None
+
+def sanitize_name(name, max_length=100):
+    """Sanitize name - allow letters, spaces, hyphens, apostrophes"""
+    if not name:
+        return None
+    name = sanitize_string(name, max_length=max_length)
+    # Remove any characters that aren't letters, spaces, hyphens, or apostrophes
+    name = re.sub(r"[^\w\s\-']", '', name, flags=re.UNICODE)
+    return name.strip() if name else None
+
+def sanitize_id(id_value, max_length=64):
+    """Sanitize ID values - only allow alphanumeric and hyphens"""
+    if not id_value:
+        return None
+    id_value = str(id_value)[:max_length]
+    id_value = re.sub(r'[^a-zA-Z0-9\-_]', '', id_value)
+    return id_value if id_value else None
+
+def sanitize_integer(value, min_val=None, max_val=None, default=0):
+    """Sanitize integer input"""
+    try:
+        value = int(value)
+        if min_val is not None and value < min_val:
+            value = min_val
+        if max_val is not None and value > max_val:
+            value = max_val
+        return value
+    except (ValueError, TypeError):
+        return default
+
+def sanitize_float(value, min_val=None, max_val=None, default=0.0):
+    """Sanitize float input"""
+    try:
+        value = float(value)
+        if min_val is not None and value < min_val:
+            value = min_val
+        if max_val is not None and value > max_val:
+            value = max_val
+        return value
+    except (ValueError, TypeError):
+        return default
+
+def sanitize_tee(tee):
+    """Validate tee selection"""
+    valid_tees = ['black', 'blue', 'white', 'red']
+    tee = sanitize_string(tee, max_length=10).lower() if tee else 'white'
+    return tee if tee in valid_tees else 'white'
+
+def sanitize_otp(otp):
+    """Sanitize OTP - only allow 6 digits"""
+    if not otp:
+        return None
+    otp = re.sub(r'\D', '', str(otp))
+    return otp[:6] if len(otp) == 6 else None
+
+def validate_password(password):
+    """Validate password strength"""
+    if not password or len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    if len(password) > 128:
+        return False, "Password too long (max 128 characters)"
+    if not re.search(r'[A-Za-z]', password):
+        return False, "Password must contain at least one letter"
+    if not re.search(r'\d', password):
+        return False, "Password must contain at least one number"
+    return True, None
+
+def require_auth(f):
+    """Decorator to require authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Database initialization
 DB_PATH = os.path.join(os.path.dirname(__file__), 'prisma', 'dev.db')
@@ -205,17 +344,73 @@ def init_db():
 # Initialize database on startup
 init_db()
 
+# Resend API configuration
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'Golf Scorecard <noreply@golf-scorecard.com>')
+
 # =====================================
 # Email OTP Functions
 # =====================================
 
 def generate_otp():
-    """Generate a 6-digit OTP"""
-    return ''.join(random.choices(string.digits, k=6))
+    """Generate a secure 6-digit OTP using cryptographic random"""
+    return ''.join(secrets.choice('0123456789') for _ in range(6))
 
 def hash_password(password):
-    """Hash password with SHA256"""
+    """Hash password using bcrypt"""
+    if isinstance(password, str):
+        password = password.encode('utf-8')
+    return bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
+
+def _legacy_hash_password(password):
+    """Legacy SHA256 hash for migration purposes only"""
+    import hashlib
     return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password, hashed):
+    """Verify password against bcrypt hash, with fallback for legacy SHA256 hashes"""
+    if isinstance(password, str):
+        password_bytes = password.encode('utf-8')
+    else:
+        password_bytes = password
+    if isinstance(hashed, str):
+        hashed_str = hashed
+        hashed_bytes = hashed.encode('utf-8')
+    else:
+        hashed_str = hashed.decode('utf-8')
+        hashed_bytes = hashed
+    
+    # Try bcrypt first (new format)
+    try:
+        if hashed_str.startswith('$2'):  # bcrypt hash prefix
+            return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception:
+        pass
+    
+    # Fallback to legacy SHA256 check for migration
+    try:
+        if len(hashed_str) == 64:  # SHA256 hex length
+            return _legacy_hash_password(password) == hashed_str
+    except Exception:
+        pass
+    
+    return False
+
+def migrate_password_if_legacy(user_id, password, hashed):
+    """Migrate legacy SHA256 password to bcrypt"""
+    if isinstance(hashed, str) and len(hashed) == 64 and not hashed.startswith('$2'):
+        # This is a legacy SHA256 hash, migrate to bcrypt
+        try:
+            new_hash = hash_password(password)
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('UPDATE User SET password = ? WHERE id = ?', (new_hash, user_id))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception:
+            pass
+    return False
 
 def get_otp_email_template(otp, otp_type='verify'):
     """Generate HTML email template for OTP"""
@@ -1404,67 +1599,81 @@ def index():
 # =====================================
 
 @app.route('/api/auth/register', methods=['POST'])
+@limiter.limit("5 per minute")
 def register():
     """Register a new user and send OTP"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
+    data = request.json or {}
+    
+    # Sanitize inputs
+    email = sanitize_email(data.get('email', ''))
     password = data.get('password', '')
-    name = data.get('name', '').strip()
-    phone = data.get('phone', '').strip()
+    name = sanitize_name(data.get('name', ''))
+    phone = sanitize_phone(data.get('phone', ''))
     
-    if not email or not password or not name:
-        return jsonify({'success': False, 'message': 'Email, password, and name are required'}), 400
+    if not email:
+        return jsonify({'success': False, 'message': 'Valid email is required'}), 400
     
-    if len(password) < 6:
-        return jsonify({'success': False, 'message': 'Password must be at least 6 characters'}), 400
+    if not name:
+        return jsonify({'success': False, 'message': 'Name is required'}), 400
+    
+    # Validate password strength
+    is_valid, error_msg = validate_password(password)
+    if not is_valid:
+        return jsonify({'success': False, 'message': error_msg}), 400
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Check if user already exists
-    cursor.execute('SELECT id, isVerified FROM User WHERE email = ?', (email,))
-    existing_user = cursor.fetchone()
-    
-    if existing_user:
-        if existing_user[1]:  # isVerified
-            conn.close()
-            return jsonify({'success': False, 'message': 'Email already registered'}), 400
+    try:
+        # Check if user already exists
+        cursor.execute('SELECT id, isVerified FROM User WHERE email = ?', (email,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            if existing_user[1]:  # isVerified
+                conn.close()
+                return jsonify({'success': False, 'message': 'Email already registered'}), 400
+            else:
+                # User exists but not verified, update and resend OTP
+                cursor.execute('''
+                    UPDATE User SET password = ?, name = ?, phone = ?, updatedAt = ? WHERE email = ?
+                ''', (hash_password(password), name, phone, datetime.now(), email))
+                conn.commit()
         else:
-            # User exists but not verified, update and resend OTP
+            # Create new user
+            user_id = secrets.token_hex(16)
             cursor.execute('''
-                UPDATE User SET password = ?, name = ?, phone = ?, updatedAt = ? WHERE email = ?
-            ''', (hash_password(password), name, phone, datetime.now(), email))
+                INSERT INTO User (id, email, password, name, phone) VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, email, hash_password(password), name, phone))
             conn.commit()
-    else:
-        # Create new user
-        user_id = secrets.token_hex(16)
-        cursor.execute('''
-            INSERT INTO User (id, email, password, name, phone) VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, email, hash_password(password), name, phone))
-        conn.commit()
-    
-    conn.close()
-    
-    # Generate and send OTP
-    otp = generate_otp()
-    save_otp(email, otp, 'verify')
-    success, result = send_otp_email(email, otp, 'verify')
-    
-    if success:
-        return jsonify({'success': True, 'message': 'OTP sent to your email'})
-    else:
-        return jsonify({'success': True, 'message': 'Account created. OTP sending may be delayed.'})
+        
+        conn.close()
+        
+        # Generate and send OTP
+        otp = generate_otp()
+        save_otp(email, otp, 'verify')
+        success, result = send_otp_email(email, otp, 'verify')
+        
+        if success:
+            return jsonify({'success': True, 'message': 'OTP sent to your email'})
+        else:
+            return jsonify({'success': True, 'message': 'Account created. OTP sending may be delayed.'})
+    except Exception as e:
+        conn.close()
+        app.logger.error(f"Registration error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Registration failed. Please try again.'}), 500
 
 
 @app.route('/api/auth/verify-register', methods=['POST'])
+@limiter.limit("10 per minute")
 def verify_register():
     """Verify registration OTP"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
-    otp = data.get('otp', '').strip()
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
+    otp = sanitize_otp(data.get('otp', ''))
     
     if not email or not otp:
-        return jsonify({'success': False, 'message': 'Email and OTP are required'}), 400
+        return jsonify({'success': False, 'message': 'Valid email and OTP are required'}), 400
     
     if verify_otp(email, otp, 'verify'):
         conn = sqlite3.connect(DB_PATH)
@@ -1481,6 +1690,7 @@ def verify_register():
             session['user_id'] = user[0]
             session['user_name'] = user[1]
             session['user_email'] = user[2]
+            session.permanent = True
             return jsonify({
                 'success': True, 
                 'message': 'Email verified successfully',
@@ -1491,10 +1701,11 @@ def verify_register():
 
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit("10 per minute")
 def login():
     """Login and send OTP"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
     password = data.get('password', '')
     
     if not email or not password:
@@ -1502,15 +1713,19 @@ def login():
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('SELECT id, name, isVerified FROM User WHERE email = ? AND password = ?', 
-                   (email, hash_password(password)))
+    cursor.execute('SELECT id, name, password, isVerified FROM User WHERE email = ?', (email,))
     user = cursor.fetchone()
     conn.close()
     
     if not user:
+        # Use constant-time comparison to prevent timing attacks
+        verify_password(password, hash_password('dummy'))
         return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
     
-    if not user[2]:  # isVerified
+    if not verify_password(password, user[2]):
+        return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
+    
+    if not user[3]:  # isVerified
         return jsonify({'success': False, 'message': 'Please verify your email first', 'needVerification': True}), 401
     
     # Generate and send OTP
@@ -1542,6 +1757,7 @@ def verify_login():
             session['user_id'] = user[0]
             session['user_name'] = user[1]
             session['user_email'] = user[2]
+            session.permanent = True
             return jsonify({
                 'success': True, 
                 'message': 'Login successful',
@@ -1552,13 +1768,14 @@ def verify_login():
 
 
 @app.route('/api/auth/forgot-password', methods=['POST'])
+@limiter.limit("5 per minute")
 def forgot_password():
     """Request password reset OTP"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
     
     if not email:
-        return jsonify({'success': False, 'message': 'Email is required'}), 400
+        return jsonify({'success': False, 'message': 'Valid email is required'}), 400
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -1566,55 +1783,65 @@ def forgot_password():
     user = cursor.fetchone()
     conn.close()
     
-    if not user:
-        # Don't reveal if email exists
-        return jsonify({'success': True, 'message': 'If the email exists, OTP will be sent'})
-    
-    # Generate and send OTP
-    otp = generate_otp()
-    save_otp(email, otp, 'reset')
-    success, result = send_otp_email(email, otp, 'reset')
+    # Always return same response to prevent email enumeration
+    if user:
+        otp = generate_otp()
+        save_otp(email, otp, 'reset')
+        send_otp_email(email, otp, 'reset')
     
     return jsonify({'success': True, 'message': 'If the email exists, OTP will be sent'})
 
 
 @app.route('/api/auth/verify-reset', methods=['POST'])
+@limiter.limit("10 per minute")
 def verify_reset():
     """Verify reset OTP"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
-    otp = data.get('otp', '').strip()
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
+    otp = sanitize_otp(data.get('otp', ''))
     
     if not email or not otp:
-        return jsonify({'success': False, 'message': 'Email and OTP are required'}), 400
+        return jsonify({'success': False, 'message': 'Valid email and OTP are required'}), 400
     
     if verify_otp(email, otp, 'reset'):
         # Generate a temporary token for password reset
         reset_token = secrets.token_hex(32)
         session['reset_email'] = email
         session['reset_token'] = reset_token
+        session['reset_expires'] = (datetime.now() + timedelta(minutes=15)).isoformat()
         return jsonify({'success': True, 'message': 'OTP verified', 'resetToken': reset_token})
     
     return jsonify({'success': False, 'message': 'Invalid or expired OTP'}), 400
 
 
 @app.route('/api/auth/reset-password', methods=['POST'])
+@limiter.limit("5 per minute")
 def reset_password():
     """Reset password with verified token"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
-    reset_token = data.get('resetToken', '')
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
+    reset_token = sanitize_string(data.get('resetToken', ''), max_length=64)
     new_password = data.get('newPassword', '')
     
     if not email or not reset_token or not new_password:
         return jsonify({'success': False, 'message': 'All fields are required'}), 400
     
-    if len(new_password) < 6:
-        return jsonify({'success': False, 'message': 'Password must be at least 6 characters'}), 400
+    # Validate password strength
+    is_valid, error_msg = validate_password(new_password)
+    if not is_valid:
+        return jsonify({'success': False, 'message': error_msg}), 400
     
-    # Verify reset token
+    # Verify reset token and check expiration
     if session.get('reset_email') != email or session.get('reset_token') != reset_token:
         return jsonify({'success': False, 'message': 'Invalid reset token'}), 400
+    
+    # Check token expiration
+    reset_expires = session.get('reset_expires')
+    if reset_expires and datetime.fromisoformat(reset_expires) < datetime.now():
+        session.pop('reset_email', None)
+        session.pop('reset_token', None)
+        session.pop('reset_expires', None)
+        return jsonify({'success': False, 'message': 'Reset token has expired'}), 400
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -1626,19 +1853,21 @@ def reset_password():
     # Clear reset session
     session.pop('reset_email', None)
     session.pop('reset_token', None)
+    session.pop('reset_expires', None)
     
     return jsonify({'success': True, 'message': 'Password reset successfully'})
 
 
 @app.route('/api/auth/resend-otp', methods=['POST'])
+@limiter.limit("3 per minute")
 def resend_otp():
     """Resend OTP"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
-    otp_type = data.get('type', 'verify')
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
+    otp_type = sanitize_string(data.get('type', 'verify'), max_length=10)
     
     if not email:
-        return jsonify({'success': False, 'message': 'Email is required'}), 400
+        return jsonify({'success': False, 'message': 'Valid email is required'}), 400
     
     if otp_type not in ['verify', 'login', 'reset']:
         return jsonify({'success': False, 'message': 'Invalid OTP type'}), 400
@@ -1702,28 +1931,59 @@ def get_profile():
 
 
 @app.route('/api/profile', methods=['PUT'])
+@require_auth
 def update_profile():
     """Update current user's profile"""
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    data = request.json
+    data = request.json or {}
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Build update query dynamically based on provided fields
-    allowed_fields = ['name', 'phone', 'handicapIndex', 'homeCourse', 'bio', 'avatar', 'city']
+    # Sanitize and validate each field
     updates = []
     values = []
     
-    for field in allowed_fields:
-        if field in data:
-            updates.append(f'{field} = ?')
-            values.append(data[field])
+    if 'name' in data:
+        name = sanitize_name(data['name'])
+        if name:
+            updates.append('name = ?')
+            values.append(name)
+    
+    if 'phone' in data:
+        phone = sanitize_phone(data['phone'])
+        updates.append('phone = ?')
+        values.append(phone)
+    
+    if 'handicapIndex' in data:
+        handicap = sanitize_float(data['handicapIndex'], min_val=-10.0, max_val=54.0, default=None)
+        updates.append('handicapIndex = ?')
+        values.append(handicap)
+    
+    if 'homeCourse' in data:
+        home_course = sanitize_string(data['homeCourse'], max_length=200)
+        updates.append('homeCourse = ?')
+        values.append(home_course)
+    
+    if 'bio' in data:
+        bio = sanitize_string(data['bio'], max_length=1000)
+        updates.append('bio = ?')
+        values.append(bio)
+    
+    if 'avatar' in data:
+        # Validate avatar URL or data
+        avatar = sanitize_string(data['avatar'], max_length=500)
+        if avatar and (avatar.startswith('data:image/') or avatar.startswith('https://')):
+            updates.append('avatar = ?')
+            values.append(avatar)
+    
+    if 'city' in data:
+        city = sanitize_string(data['city'], max_length=100)
+        updates.append('city = ?')
+        values.append(city)
     
     if not updates:
-        return jsonify({'error': 'No fields to update'}), 400
+        conn.close()
+        return jsonify({'error': 'No valid fields to update'}), 400
     
     updates.append('updatedAt = CURRENT_TIMESTAMP')
     values.append(session['user_id'])
@@ -1732,8 +1992,8 @@ def update_profile():
     cursor.execute(query, values)
     
     # Update session if name changed
-    if 'name' in data:
-        session['user_name'] = data['name']
+    if 'name' in data and sanitize_name(data['name']):
+        session['user_name'] = sanitize_name(data['name'])
     
     conn.commit()
     conn.close()
@@ -1873,18 +2133,27 @@ def get_forum_posts():
 
 
 @app.route('/api/forum/posts', methods=['POST'])
+@require_auth
+@limiter.limit("10 per hour")
 def create_forum_post():
     """Create a new forum post"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Please login to post'}), 401
+    data = request.json or {}
     
-    data = request.json
-    title = data.get('title', '').strip()
-    content = data.get('content', '').strip()
-    category = data.get('category', 'general')
+    # Sanitize inputs
+    title = sanitize_string(data.get('title', ''), max_length=200)
+    content = sanitize_string(data.get('content', ''), max_length=5000, allow_html=True)
+    category = sanitize_string(data.get('category', 'general'), max_length=50)
     
-    if not title or not content:
-        return jsonify({'success': False, 'message': 'Title and content are required'}), 400
+    # Validate category
+    valid_categories = ['general', 'tips', 'equipment', 'courses', 'tournaments', 'other']
+    if category not in valid_categories:
+        category = 'general'
+    
+    if not title or len(title) < 3:
+        return jsonify({'success': False, 'message': 'Title must be at least 3 characters'}), 400
+    
+    if not content or len(content) < 10:
+        return jsonify({'success': False, 'message': 'Content must be at least 10 characters'}), 400
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -1893,7 +2162,7 @@ def create_forum_post():
     cursor.execute('''
         INSERT INTO ForumPost (id, userId, userName, title, content, category)
         VALUES (?, ?, ?, ?, ?, ?)
-    ''', (post_id, session['user_id'], session['user_name'], title, content, category))
+    ''', (post_id, session['user_id'], sanitize_name(session['user_name']), title, content, category))
     
     conn.commit()
     conn.close()
@@ -1908,6 +2177,11 @@ def create_forum_post():
 @app.route('/api/forum/posts/<post_id>', methods=['GET'])
 def get_forum_post(post_id):
     """Get a single forum post with comments"""
+    # Sanitize post_id
+    post_id = sanitize_id(post_id)
+    if not post_id:
+        return jsonify({'error': 'Invalid post ID'}), 400
+    
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -1936,10 +2210,13 @@ def get_forum_post(post_id):
 
 
 @app.route('/api/forum/posts/<post_id>', methods=['DELETE'])
+@require_auth
 def delete_forum_post(post_id):
     """Delete a forum post"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Please login'}), 401
+    # Sanitize post_id
+    post_id = sanitize_id(post_id)
+    if not post_id:
+        return jsonify({'success': False, 'message': 'Invalid post ID'}), 400
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -1964,15 +2241,19 @@ def delete_forum_post(post_id):
 
 
 @app.route('/api/forum/posts/<post_id>/comments', methods=['POST'])
+@require_auth
+@limiter.limit("30 per hour")
 def add_forum_comment(post_id):
     """Add a comment to a post"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Please login to comment'}), 401
+    # Sanitize post_id
+    post_id = sanitize_id(post_id)
+    if not post_id:
+        return jsonify({'success': False, 'message': 'Invalid post ID'}), 400
     
-    data = request.json
-    content = data.get('content', '').strip()
+    data = request.json or {}
+    content = sanitize_string(data.get('content', ''), max_length=2000)
     
-    if not content:
+    if not content or len(content) < 1:
         return jsonify({'success': False, 'message': 'Comment cannot be empty'}), 400
     
     conn = sqlite3.connect(DB_PATH)
@@ -1988,7 +2269,7 @@ def add_forum_comment(post_id):
     cursor.execute('''
         INSERT INTO ForumComment (id, postId, userId, userName, content)
         VALUES (?, ?, ?, ?, ?)
-    ''', (comment_id, post_id, session['user_id'], session['user_name'], content))
+    ''', (comment_id, post_id, session['user_id'], sanitize_name(session['user_name']), content))
     
     # Update comment count
     cursor.execute('UPDATE ForumPost SET commentCount = commentCount + 1 WHERE id = ?', (post_id,))
@@ -2002,20 +2283,30 @@ def add_forum_comment(post_id):
         'comment': {
             'id': comment_id,
             'content': content,
-            'userName': session['user_name'],
+            'userName': sanitize_name(session['user_name']),
             'createdAt': datetime.now().isoformat()
         }
     })
 
 
 @app.route('/api/forum/posts/<post_id>/like', methods=['POST'])
+@require_auth
+@limiter.limit("60 per hour")
 def toggle_forum_like(post_id):
     """Toggle like on a post"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Please login to like'}), 401
+    # Sanitize post_id
+    post_id = sanitize_id(post_id)
+    if not post_id:
+        return jsonify({'success': False, 'message': 'Invalid post ID'}), 400
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Verify post exists
+    cursor.execute('SELECT id FROM ForumPost WHERE id = ?', (post_id,))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'success': False, 'message': 'Post not found'}), 404
     
     # Check if already liked
     cursor.execute('SELECT id FROM ForumLike WHERE postId = ? AND userId = ?', 
@@ -2025,7 +2316,7 @@ def toggle_forum_like(post_id):
     if existing:
         # Unlike
         cursor.execute('DELETE FROM ForumLike WHERE id = ?', (existing[0],))
-        cursor.execute('UPDATE ForumPost SET likes = likes - 1 WHERE id = ?', (post_id,))
+        cursor.execute('UPDATE ForumPost SET likes = MAX(0, likes - 1) WHERE id = ?', (post_id,))
         liked = False
     else:
         # Like
@@ -2037,7 +2328,8 @@ def toggle_forum_like(post_id):
     
     # Get new like count
     cursor.execute('SELECT likes FROM ForumPost WHERE id = ?', (post_id,))
-    likes = cursor.fetchone()[0]
+    result = cursor.fetchone()
+    likes = result[0] if result else 0
     
     conn.commit()
     conn.close()
@@ -2186,11 +2478,22 @@ def create_player():
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate_scores():
-    data = request.json
+    data = request.json or {}
+    
+    # Sanitize inputs
+    course_id = sanitize_id(data.get('course_id'))
+    hole_count = sanitize_integer(data.get('hole_count', 18), min_val=9, max_val=18, default=18)
+    game_id = sanitize_id(data.get('game_id'))
     players = data.get('players', [])
-    course_id = data.get('course_id')
-    hole_count = data.get('hole_count', 18)
-    game_id = data.get('game_id')
+    
+    if not course_id:
+        return jsonify({"error": "Course ID is required"}), 400
+    
+    if not isinstance(players, list) or len(players) == 0:
+        return jsonify({"error": "At least one player is required"}), 400
+    
+    if len(players) > 8:
+        return jsonify({"error": "Maximum 8 players allowed"}), 400
     
     # Get course info
     course = None
@@ -2208,9 +2511,23 @@ def calculate_scores():
     
     results = []
     for player in players:
-        scores = player.get('scores', [])
-        tee = player.get('tee', 'white')
-        handicap_index = player.get('handicap', 0)
+        # Sanitize player data
+        name = sanitize_name(player.get('name', ''), max_length=50)
+        if not name:
+            continue
+            
+        email = sanitize_email(player.get('email', ''))
+        tee = sanitize_tee(player.get('tee', 'white'))
+        handicap_index = sanitize_float(player.get('handicap', 0), min_val=-10, max_val=54, default=0)
+        
+        # Sanitize scores
+        raw_scores = player.get('scores', [])
+        if not isinstance(raw_scores, list):
+            continue
+        scores = [sanitize_integer(s, min_val=1, max_val=20, default=5) for s in raw_scores[:hole_count]]
+        
+        if len(scores) != hole_count:
+            continue
         
         tee_data = course['tees'].get(tee, course['tees']['white'])
         course_handicap = calculate_handicap_strokes(
@@ -2235,8 +2552,8 @@ def calculate_scores():
             })
         
         results.append({
-            'name': player['name'],
-            'email': player.get('email'),
+            'name': name,
+            'email': email,
             'tee': tee,
             'handicap_index': handicap_index,
             'course_handicap': course_handicap,
@@ -2247,13 +2564,16 @@ def calculate_scores():
             'scores': scores
         })
     
+    if not results:
+        return jsonify({"error": "No valid player data provided"}), 400
+    
     # Sort by net score for ranking
     results.sort(key=lambda x: x['net_score'])
     for i, r in enumerate(results):
         r['rank'] = i + 1
     
     recommendations = generate_recommendations(
-        [{'name': p['name'], 'scores': p.get('scores', [])} for p in players],
+        [{'name': p['name'], 'scores': p.get('scores', [])} for p in results],
         hole_pars
     )
     
@@ -2268,7 +2588,7 @@ def calculate_scores():
                 hole_count
             )
         except Exception as e:
-            print(f"Error saving results: {e}")
+            app.logger.error(f"Error saving results: {e}")
     
     return jsonify({
         'course': course,

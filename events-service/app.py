@@ -1,12 +1,125 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from datetime import datetime, timedelta
 import sqlite3
 import secrets
 import os
+import re
+import bleach
+from email_validator import validate_email, EmailNotValidError
 
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with specific origins in production
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
+CORS(app, origins=allowed_origins, supports_credentials=True)
+
+# Rate limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# Security headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
+
+# =====================================
+# Input Validation & Sanitization
+# =====================================
+
+def sanitize_string(value, max_length=500, allow_html=False):
+    """Sanitize a string input"""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        value = str(value)
+    value = value.strip()
+    if len(value) > max_length:
+        value = value[:max_length]
+    if allow_html:
+        value = bleach.clean(value, tags=['b', 'i', 'u', 'em', 'strong', 'p', 'br'], strip=True)
+    else:
+        value = bleach.clean(value, tags=[], strip=True)
+    return value
+
+def sanitize_email_input(email):
+    """Validate and sanitize email address"""
+    if not email:
+        return None
+    email = sanitize_string(email, max_length=254).lower()
+    try:
+        valid = validate_email(email, check_deliverability=False)
+        return valid.normalized
+    except EmailNotValidError:
+        return None
+
+def sanitize_phone(phone):
+    """Sanitize phone number"""
+    if not phone:
+        return None
+    phone = sanitize_string(phone, max_length=20)
+    phone = re.sub(r'[^\d+\-\s()]', '', phone)
+    return phone if phone else None
+
+def sanitize_name(name, max_length=100):
+    """Sanitize name"""
+    if not name:
+        return None
+    name = sanitize_string(name, max_length=max_length)
+    name = re.sub(r"[^\w\s\-']", '', name, flags=re.UNICODE)
+    return name.strip() if name else None
+
+def sanitize_id(id_value, max_length=64):
+    """Sanitize ID values"""
+    if not id_value:
+        return None
+    id_value = str(id_value)[:max_length]
+    id_value = re.sub(r'[^a-zA-Z0-9\-_]', '', id_value)
+    return id_value if id_value else None
+
+def sanitize_integer(value, min_val=None, max_val=None, default=0):
+    """Sanitize integer input"""
+    try:
+        value = int(value)
+        if min_val is not None and value < min_val:
+            value = min_val
+        if max_val is not None and value > max_val:
+            value = max_val
+        return value
+    except (ValueError, TypeError):
+        return default
+
+def sanitize_float(value, min_val=None, max_val=None, default=0.0):
+    """Sanitize float input"""
+    try:
+        value = float(value)
+        if min_val is not None and value < min_val:
+            value = min_val
+        if max_val is not None and value > max_val:
+            value = max_val
+        return value
+    except (ValueError, TypeError):
+        return default
+
+def sanitize_date(date_str):
+    """Validate and sanitize date string"""
+    if not date_str:
+        return None
+    try:
+        # Parse and validate date format
+        dt = datetime.strptime(str(date_str)[:10], '%Y-%m-%d')
+        return dt.strftime('%Y-%m-%d')
+    except (ValueError, TypeError):
+        return None
 
 # Database initialization
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'events.db')
@@ -280,6 +393,11 @@ def get_events():
 @app.route('/api/events/<event_id>', methods=['GET'])
 def get_event(event_id):
     """Get a single event with registrations count"""
+    # Sanitize event_id
+    event_id = sanitize_id(event_id)
+    if not event_id:
+        return jsonify({'error': 'Invalid event ID'}), 400
+    
     conn = get_db()
     cursor = conn.cursor()
     
@@ -300,14 +418,49 @@ def get_event(event_id):
     return jsonify(event)
 
 @app.route('/api/events', methods=['POST'])
+@limiter.limit("10 per hour")
 def create_event():
     """Create a new event"""
-    data = request.json
+    data = request.json or {}
     
-    required_fields = ['title', 'eventDate']
-    for field in required_fields:
-        if not data.get(field):
-            return jsonify({'success': False, 'message': f'{field} is required'}), 400
+    # Sanitize and validate all inputs
+    title = sanitize_string(data.get('title', ''), max_length=200)
+    if not title or len(title) < 3:
+        return jsonify({'success': False, 'message': 'Title is required (min 3 characters)'}), 400
+    
+    event_date = sanitize_date(data.get('eventDate'))
+    if not event_date:
+        return jsonify({'success': False, 'message': 'Valid event date is required'}), 400
+    
+    # Sanitize other fields
+    description = sanitize_string(data.get('description', ''), max_length=5000, allow_html=True)
+    event_type = sanitize_string(data.get('eventType', 'tournament'), max_length=50)
+    valid_types = ['tournament', 'medal', 'corporate', 'charity', 'clinic', 'other']
+    if event_type not in valid_types:
+        event_type = 'tournament'
+    
+    course_id = sanitize_id(data.get('courseId'))
+    course_name = sanitize_string(data.get('courseName', ''), max_length=200)
+    location = sanitize_string(data.get('location', ''), max_length=300)
+    start_time = sanitize_string(data.get('startTime', ''), max_length=10)
+    end_time = sanitize_string(data.get('endTime', ''), max_length=10)
+    registration_deadline = sanitize_date(data.get('registrationDeadline'))
+    max_participants = sanitize_integer(data.get('maxParticipants', 100), min_val=1, max_val=1000, default=100)
+    entry_fee = sanitize_float(data.get('entryFee', 0), min_val=0, max_val=100000000, default=0)
+    currency = sanitize_string(data.get('currency', 'IDR'), max_length=10)
+    valid_currencies = ['IDR', 'USD', 'SGD']
+    if currency not in valid_currencies:
+        currency = 'IDR'
+    prizes = sanitize_string(data.get('prizes', ''), max_length=2000, allow_html=True)
+    rules = sanitize_string(data.get('rules', ''), max_length=5000, allow_html=True)
+    contact_person = sanitize_name(data.get('contactPerson', ''))
+    contact_phone = sanitize_phone(data.get('contactPhone', ''))
+    contact_email = sanitize_email_input(data.get('contactEmail', ''))
+    image_url = sanitize_string(data.get('imageUrl', ''), max_length=500)
+    # Validate image URL if provided
+    if image_url and not (image_url.startswith('https://') or image_url.startswith('/')):
+        image_url = None
+    created_by = sanitize_id(data.get('createdBy'))
     
     conn = get_db()
     cursor = conn.cursor()
@@ -322,28 +475,10 @@ def create_event():
             contactEmail, imageUrl, status, createdBy
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        event_id,
-        data.get('title'),
-        data.get('description'),
-        data.get('eventType', 'tournament'),
-        data.get('courseId'),
-        data.get('courseName'),
-        data.get('location'),
-        data.get('eventDate'),
-        data.get('startTime'),
-        data.get('endTime'),
-        data.get('registrationDeadline'),
-        data.get('maxParticipants', 100),
-        data.get('entryFee', 0),
-        data.get('currency', 'IDR'),
-        data.get('prizes'),
-        data.get('rules'),
-        data.get('contactPerson'),
-        data.get('contactPhone'),
-        data.get('contactEmail'),
-        data.get('imageUrl'),
-        'upcoming',
-        data.get('createdBy')
+        event_id, title, description, event_type, course_id, course_name, location,
+        event_date, start_time, end_time, registration_deadline, max_participants,
+        entry_fee, currency, prizes, rules, contact_person, contact_phone,
+        contact_email, image_url, 'upcoming', created_by
     ))
     
     conn.commit()
@@ -399,8 +534,14 @@ def update_event(event_id):
     return jsonify({'success': True, 'message': 'Event updated successfully'})
 
 @app.route('/api/events/<event_id>', methods=['DELETE'])
+@limiter.limit("10 per hour")
 def delete_event(event_id):
     """Delete an event"""
+    # Sanitize event_id
+    event_id = sanitize_id(event_id)
+    if not event_id:
+        return jsonify({'success': False, 'message': 'Invalid event ID'}), 400
+    
     conn = get_db()
     cursor = conn.cursor()
     
@@ -420,12 +561,35 @@ def delete_event(event_id):
 # =====================================
 
 @app.route('/api/events/<event_id>/register', methods=['POST'])
+@limiter.limit("20 per hour")
 def register_for_event(event_id):
     """Register for an event"""
-    data = request.json
+    # Sanitize event_id
+    event_id = sanitize_id(event_id)
+    if not event_id:
+        return jsonify({'success': False, 'message': 'Invalid event ID'}), 400
     
-    if not data.get('playerName') or not data.get('email'):
-        return jsonify({'success': False, 'message': 'Name and email are required'}), 400
+    data = request.json or {}
+    
+    # Sanitize and validate inputs
+    player_name = sanitize_name(data.get('playerName', ''))
+    email = sanitize_email_input(data.get('email', ''))
+    
+    if not player_name or len(player_name) < 2:
+        return jsonify({'success': False, 'message': 'Valid player name is required'}), 400
+    
+    if not email:
+        return jsonify({'success': False, 'message': 'Valid email is required'}), 400
+    
+    # Sanitize other fields
+    user_id = sanitize_id(data.get('userId'))
+    phone = sanitize_phone(data.get('phone', ''))
+    handicap = sanitize_float(data.get('handicap'), min_val=-10, max_val=54, default=None)
+    tee_preference = sanitize_string(data.get('teePreference', 'white'), max_length=10)
+    valid_tees = ['black', 'blue', 'white', 'red']
+    if tee_preference not in valid_tees:
+        tee_preference = 'white'
+    notes = sanitize_string(data.get('notes', ''), max_length=500)
     
     conn = get_db()
     cursor = conn.cursor()
@@ -447,7 +611,7 @@ def register_for_event(event_id):
         return jsonify({'success': False, 'message': 'Event is full'}), 400
     
     # Check for duplicate registration
-    cursor.execute('SELECT id FROM EventRegistration WHERE eventId = ? AND email = ?', (event_id, data['email']))
+    cursor.execute('SELECT id FROM EventRegistration WHERE eventId = ? AND email = ?', (event_id, email))
     if cursor.fetchone():
         conn.close()
         return jsonify({'success': False, 'message': 'Already registered with this email'}), 400
@@ -458,8 +622,8 @@ def register_for_event(event_id):
         INSERT INTO EventRegistration (id, eventId, userId, playerName, email, phone, handicap, teePreference, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        reg_id, event_id, data.get('userId'), data['playerName'], data['email'],
-        data.get('phone'), data.get('handicap'), data.get('teePreference', 'white'), data.get('notes')
+        reg_id, event_id, user_id, player_name, email,
+        phone, handicap, tee_preference, notes
     ))
     
     # Update participant count

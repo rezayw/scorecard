@@ -2,3 +2,6 @@ Flask==3.0.0
 Flask-CORS==4.0.0
 Werkzeug==3.0.1
 gunicorn==21.2.0
+bleach==6.1.0
+email-validator==2.1.0
+flask-limiter==3.5.0
