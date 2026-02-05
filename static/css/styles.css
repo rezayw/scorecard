@@ -42,13 +42,13 @@ body {
 }
 
 .step-indicator.active {
-    background-color: #1a5f2a !important;
-    color: white !important;
+    background-color: #0F3B2E !important;
+    color: #F3F1EC !important;
 }
 
 .step-indicator.completed {
-    background-color: #22c55e !important;
-    color: white !important;
+    background-color: #E6C36A !important;
+    color: #0A241C !important;
 }
 
 /* Card Shadow */
@@ -58,7 +58,7 @@ body {
 
 /* Primary Button */
 .btn-primary {
-    background: linear-gradient(135deg, #1a5f2a 0%, #22c55e 100%);
+    background: linear-gradient(135deg, #0F3B2E 0%, #C9A84E 100%);
     transition: all 0.2s ease;
     border: none;
     cursor: pointer;
@@ -132,8 +132,8 @@ body {
 
 /* Hole Selected State */
 .hole-btn.selected {
-    border-color: #22c55e !important;
-    background-color: #f0fdf4 !important;
+    border-color: #E6C36A !important;
+    background-color: #F3F1EC !important;
 }
 
 /* Custom Scrollbar */
@@ -148,7 +148,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #22c55e;
+    background: #E6C36A;
     border-radius: 10px;
 }
 
@@ -242,7 +242,7 @@ body {
     left: 0;
     right: 0;
     height: 3px;
-    background-color: #22c55e;
+    background-color: #E6C36A;
     border-radius: 3px 3px 0 0;
 }
 
@@ -252,7 +252,7 @@ input:invalid:not(:placeholder-shown) {
 }
 
 input:valid:not(:placeholder-shown) {
-    border-color: #22c55e;
+    border-color: #E6C36A;
 }
 
 /* Skeleton Loading */
@@ -269,18 +269,18 @@ input:valid:not(:placeholder-shown) {
 
 /* OTP Input Styles */
 .otp-input {
-    caret-color: #1a5f2a;
+    caret-color: #0F3B2E;
     transition: all 0.2s ease;
 }
 
 .otp-input:focus {
-    border-color: #22c55e !important;
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+    border-color: #E6C36A !important;
+    box-shadow: 0 0 0 3px rgba(230, 195, 106, 0.2);
 }
 
 .otp-input:not(:placeholder-shown) {
-    background-color: #f0fdf4;
-    border-color: #22c55e;
+    background-color: #F3F1EC;
+    border-color: #E6C36A;
 }
 
 /* Auth Modal Animations */
@@ -305,7 +305,7 @@ button[onclick*="togglePassword"] {
 }
 
 button[onclick*="togglePassword"]:hover {
-    color: #1a5f2a;
+    color: #0F3B2E;
 }
 
 /* Resend OTP Button */

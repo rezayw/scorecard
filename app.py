@@ -442,25 +442,25 @@ def get_otp_email_template(otp, otp_type='verify'):
                     <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                         <!-- Header -->
                         <tr>
-                            <td style="background: linear-gradient(135deg, #14532d 0%, #166534 50%, #22c55e 100%); padding: 40px 30px; text-align: center; border-radius: 16px 16px 0 0;">
+                            <td style="background: linear-gradient(135deg, #0A241C 0%, #0F3B2E 50%, #C9A84E 100%); padding: 40px 30px; text-align: center; border-radius: 16px 16px 0 0;">
                                 <div style="font-size: 48px; margin-bottom: 10px;">⛳</div>
-                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Golf Scorecard</h1>
-                                <p style="color: #bbf7d0; margin: 5px 0 0 0; font-size: 14px;">Indonesia Edition</p>
+                                <h1 style="color: #F3F1EC; margin: 0; font-size: 28px; font-weight: bold;">Golf Scorecard</h1>
+                                <p style="color: #E6C36A; margin: 5px 0 0 0; font-size: 14px;">Indonesia Edition</p>
                             </td>
                         </tr>
                         
                         <!-- Content -->
                         <tr>
                             <td style="padding: 40px 30px;">
-                                <h2 style="color: #14532d; margin: 0 0 20px 0; font-size: 24px; text-align: center;">{title}</h2>
+                                <h2 style="color: #0A241C; margin: 0 0 20px 0; font-size: 24px; text-align: center;">{title}</h2>
                                 <p style="color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center; margin: 0 0 30px 0;">
                                     {message}
                                 </p>
                                 
                                 <!-- OTP Box -->
-                                <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #22c55e; border-radius: 12px; padding: 30px; text-align: center; margin: 0 0 30px 0;">
+                                <div style="background: linear-gradient(135deg, #F3F1EC 0%, #E8E4DA 100%); border: 2px solid #E6C36A; border-radius: 12px; padding: 30px; text-align: center; margin: 0 0 30px 0;">
                                     <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px;">Your OTP Code</p>
-                                    <div style="font-size: 40px; font-weight: bold; color: #14532d; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                    <div style="font-size: 40px; font-weight: bold; color: #0A241C; letter-spacing: 8px; font-family: 'Courier New', monospace;">
                                         {otp}
                                     </div>
                                 </div>
@@ -1725,6 +1725,9 @@ def login():
     if not verify_password(password, user[2]):
         return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
     
+    # Migrate legacy password hash to bcrypt if needed
+    migrate_password_if_legacy(user[0], password, user[2])
+    
     if not user[3]:  # isVerified
         return jsonify({'success': False, 'message': 'Please verify your email first', 'needVerification': True}), 401
     
@@ -1737,14 +1740,15 @@ def login():
 
 
 @app.route('/api/auth/verify-login', methods=['POST'])
+@limiter.limit("10 per minute")
 def verify_login():
     """Verify login OTP"""
-    data = request.json
-    email = data.get('email', '').strip().lower()
-    otp = data.get('otp', '').strip()
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
+    otp = sanitize_otp(data.get('otp', ''))
     
     if not email or not otp:
-        return jsonify({'success': False, 'message': 'Email and OTP are required'}), 400
+        return jsonify({'success': False, 'message': 'Valid email and OTP are required'}), 400
     
     if verify_otp(email, otp, 'login'):
         conn = sqlite3.connect(DB_PATH)
@@ -2002,11 +2006,9 @@ def update_profile():
 
 
 @app.route('/api/profile/stats')
+@require_auth
 def get_profile_stats():
     """Get user's golf statistics"""
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -2061,20 +2063,21 @@ def get_profile_stats():
 
 
 @app.route('/api/profile/change-password', methods=['POST'])
+@require_auth
+@limiter.limit("5 per hour")
 def change_password():
     """Change user's password"""
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    data = request.json
+    data = request.json or {}
     current_password = data.get('currentPassword', '')
     new_password = data.get('newPassword', '')
     
     if not current_password or not new_password:
         return jsonify({'error': 'Current and new password required'}), 400
     
-    if len(new_password) < 6:
-        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    # Validate new password strength
+    is_valid, error_msg = validate_password(new_password)
+    if not is_valid:
+        return jsonify({'error': error_msg}), 400
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -2083,11 +2086,11 @@ def change_password():
     cursor.execute('SELECT password FROM User WHERE id = ?', (session['user_id'],))
     user = cursor.fetchone()
     
-    if not user or user[0] != hash_password(current_password):
+    if not user or not verify_password(current_password, user[0]):
         conn.close()
         return jsonify({'error': 'Current password is incorrect'}), 400
     
-    # Update password
+    # Update password with bcrypt
     hashed_password = hash_password(new_password)
     cursor.execute('UPDATE User SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
                    (hashed_password, session['user_id']))
@@ -2456,9 +2459,17 @@ def get_players():
 
 
 @app.route('/api/players', methods=['POST'])
+@limiter.limit("20 per hour")
 def create_player():
     """Create a new player"""
-    data = request.json
+    data = request.json or {}
+    
+    # Sanitize inputs
+    name = sanitize_name(data.get('name', ''))
+    email = sanitize_email(data.get('email', ''))
+    
+    if not name or len(name) < 2:
+        return jsonify({"error": "Valid name is required"}), 400
     
     try:
         conn = get_db()
@@ -2467,13 +2478,13 @@ def create_player():
         cursor.execute('''
             INSERT INTO Player (id, name, email)
             VALUES (?, ?, ?)
-        ''', (player_id, data.get('name'), data.get('email')))
+        ''', (player_id, name, email))
         conn.commit()
         conn.close()
-        return jsonify({"id": player_id, "name": data.get('name'), "email": data.get('email')})
+        return jsonify({"id": player_id, "name": name, "email": email})
     except Exception as e:
-        print(f"Error creating player: {e}")
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Error creating player: {e}")
+        return jsonify({"error": "Failed to create player"}), 500
 
 
 @app.route('/api/calculate', methods=['POST'])
@@ -2621,7 +2632,7 @@ def generate_pdf():
         fontSize=24,
         alignment=TA_CENTER,
         spaceAfter=20,
-        textColor=colors.HexColor('#1a5f2a')
+        textColor=colors.HexColor('#0F3B2E')
     )
     subtitle_style = ParagraphStyle(
         'CustomSubtitle',
@@ -2683,9 +2694,9 @@ def generate_pdf():
     table = Table(table_data, colWidths=col_widths)
     
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5f2a')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F3B2E')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#90EE90')),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#E6C36A')),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 8),
@@ -2722,15 +2733,21 @@ def generate_pdf():
     )
 
 @app.route('/api/send-email', methods=['POST'])
+@limiter.limit("10 per hour")
 def send_email():
     """Send scorecard via email (requires SMTP configuration)"""
-    data = request.json
-    email = data.get('email')
+    data = request.json or {}
+    email = sanitize_email(data.get('email', ''))
     
-    # For demo purposes, return success
+    if not email:
+        return jsonify({
+            "success": False, 
+            "message": "Valid email address is required."
+        }), 400
+    
     # In production, configure SMTP settings
     smtp_host = os.environ.get('SMTP_HOST', '')
-    smtp_port = os.environ.get('SMTP_PORT', 587)
+    smtp_port = sanitize_integer(os.environ.get('SMTP_PORT', 587), min_val=1, max_val=65535, default=587)
     smtp_user = os.environ.get('SMTP_USER', '')
     smtp_pass = os.environ.get('SMTP_PASS', '')
     
@@ -2741,14 +2758,11 @@ def send_email():
         }), 503
     
     try:
-        # Generate PDF
-        # ... (same PDF generation logic)
-        
         # Send email with attachment
         msg = MIMEMultipart()
         msg['From'] = smtp_user
         msg['To'] = email
-        msg['Subject'] = f"Your Golf Scorecard - {data.get('date', '')}"
+        msg['Subject'] = f"Your Golf Scorecard - {sanitize_string(data.get('date', ''), max_length=20)}"
         
         body = "Please find your golf scorecard attached."
         msg.attach(MIMEText(body, 'plain'))
@@ -2762,7 +2776,10 @@ def send_email():
         
         return jsonify({"success": True, "message": "Email sent successfully!"})
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        app.logger.error(f"Email sending failed: {e}")
+        return jsonify({"success": False, "message": "Failed to send email. Please try again."}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Use environment for debug mode
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    app.run(host='0.0.0.0', port=5000, debug=debug)
