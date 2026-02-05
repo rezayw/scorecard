@@ -257,13 +257,40 @@ async function handleLogin() {
 
 async function handleRegister() {
     const name = document.getElementById('registerName').value.trim();
-    const email = document.getElementById('registerEmail').value.trim();
+    const username = document.getElementById('registerUsername').value.trim().toLowerCase();
+    const studentId = document.getElementById('registerStudentId').value.trim().toUpperCase();
+    const email = document.getElementById('registerEmail').value.trim().toLowerCase();
     const phone = document.getElementById('registerPhone').value.trim();
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
     
-    if (!name || !email || !password) {
+    // Validate required fields
+    if (!name || !username || !studentId || !email || !password) {
         showToast('Please fill in all required fields');
+        return;
+    }
+    
+    // Validate name (2+ characters, letters and spaces only)
+    if (name.length < 2 || !/^[\p{L}\s\-']+$/u.test(name)) {
+        showToast('Please enter a valid name');
+        return;
+    }
+    
+    // Validate username (3+ chars, alphanumeric and underscore only)
+    if (username.length < 3 || !/^[a-z0-9_]+$/.test(username)) {
+        showToast('Username must be at least 3 characters (letters, numbers, underscore only)');
+        return;
+    }
+    
+    // Validate student ID (alphanumeric only)
+    if (!/^[A-Z0-9]+$/.test(studentId)) {
+        showToast('Student ID must contain only letters and numbers');
+        return;
+    }
+    
+    // Validate email domain (only gmail.com and itb.ac.id)
+    if (!email.endsWith('@gmail.com') && !email.endsWith('@itb.ac.id')) {
+        showToast('Only Gmail and ITB email addresses are allowed');
         return;
     }
     
@@ -283,7 +310,7 @@ async function handleRegister() {
         const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone, password })
+            body: JSON.stringify({ name, username, studentId, email, phone, password })
         });
         
         const data = await response.json();

@@ -101,6 +101,35 @@ def sanitize_name(name, max_length=100):
     name = re.sub(r"[^\w\s\-']", '', name, flags=re.UNICODE)
     return name.strip() if name else None
 
+def sanitize_username(username, max_length=30):
+    """Sanitize username - allow letters, numbers, underscores only"""
+    if not username:
+        return None
+    username = sanitize_string(username, max_length=max_length).lower()
+    # Only allow alphanumeric and underscores
+    username = re.sub(r'[^a-z0-9_]', '', username)
+    return username if len(username) >= 3 else None
+
+def sanitize_student_id(student_id, max_length=20):
+    """Sanitize student ID - only allow alphanumeric"""
+    if not student_id:
+        return None
+    student_id = sanitize_string(student_id, max_length=max_length).upper()
+    # Only allow alphanumeric characters
+    student_id = re.sub(r'[^A-Z0-9]', '', student_id)
+    return student_id if student_id else None
+
+def validate_email_domain(email):
+    """Validate that email is from allowed domains (gmail.com or itb.ac.id)"""
+    if not email:
+        return False
+    email_lower = email.lower()
+    allowed_domains = ['gmail.com', 'itb.ac.id']
+    for domain in allowed_domains:
+        if email_lower.endswith('@' + domain):
+            return True
+    return False
+
 def sanitize_id(id_value, max_length=64):
     """Sanitize ID values - only allow alphanumeric and hyphens"""
     if not id_value:
@@ -266,6 +295,8 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             name TEXT NOT NULL,
+            username TEXT UNIQUE,
+            studentId TEXT,
             phone TEXT,
             isVerified INTEGER DEFAULT 0,
             handicapIndex REAL,
@@ -1881,13 +1912,25 @@ def register():
     email = sanitize_email(data.get('email', ''))
     password = data.get('password', '')
     name = sanitize_name(data.get('name', ''))
+    username = sanitize_username(data.get('username', ''))
+    student_id = sanitize_student_id(data.get('studentId', ''))
     phone = sanitize_phone(data.get('phone', ''))
     
     if not email:
         return jsonify({'success': False, 'message': 'Valid email is required'}), 400
     
+    # Validate email domain (only gmail.com and itb.ac.id allowed)
+    if not validate_email_domain(email):
+        return jsonify({'success': False, 'message': 'Only Gmail and ITB email addresses are allowed'}), 400
+    
     if not name:
         return jsonify({'success': False, 'message': 'Name is required'}), 400
+    
+    if not username:
+        return jsonify({'success': False, 'message': 'Username is required (min 3 characters, letters/numbers/underscore only)'}), 400
+    
+    if not student_id:
+        return jsonify({'success': False, 'message': 'Student ID (ITB) is required'}), 400
     
     # Validate password strength
     is_valid, error_msg = validate_password(password)
@@ -1902,6 +1945,13 @@ def register():
         cursor.execute('SELECT id, isVerified FROM User WHERE email = ?', (email,))
         existing_user = cursor.fetchone()
         
+        # Check if username already exists
+        cursor.execute('SELECT id FROM User WHERE username = ? AND email != ?', (username, email or ''))
+        existing_username = cursor.fetchone()
+        if existing_username:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Username already taken'}), 400
+        
         if existing_user:
             if existing_user[1]:  # isVerified
                 conn.close()
@@ -1909,15 +1959,15 @@ def register():
             else:
                 # User exists but not verified, update and resend OTP
                 cursor.execute('''
-                    UPDATE User SET password = ?, name = ?, phone = ?, updatedAt = ? WHERE email = ?
-                ''', (hash_password(password), name, phone, datetime.now(), email))
+                    UPDATE User SET password = ?, name = ?, username = ?, studentId = ?, phone = ?, updatedAt = ? WHERE email = ?
+                ''', (hash_password(password), name, username, student_id, phone, datetime.now(), email))
                 conn.commit()
         else:
             # Create new user
             user_id = secrets.token_hex(16)
             cursor.execute('''
-                INSERT INTO User (id, email, password, name, phone) VALUES (?, ?, ?, ?, ?)
-            ''', (user_id, email, hash_password(password), name, phone))
+                INSERT INTO User (id, email, password, name, username, studentId, phone) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, email, hash_password(password), name, username, student_id, phone))
             conn.commit()
         
         conn.close()

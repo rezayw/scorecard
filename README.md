@@ -97,24 +97,12 @@ open http://localhost:5000
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `FLASK_ENV` | Environment mode | `production` |
-| `SMTP_HOST` | SMTP server for email | - |
-| `SMTP_PORT` | SMTP port | `587` |
-| `SMTP_USER` | SMTP username | - |
-| `SMTP_PASS` | SMTP password | - |
+Database Configuration
+DATABASE_URL="file:./prisma/dev.db"
 
-### Email Configuration (Optional)
-
-Create a `.env` file or set environment variables:
-
-```bash
-export SMTP_HOST=smtp.gmail.com
-export SMTP_PORT=587
-export SMTP_USER=your-email@gmail.com
-export SMTP_PASS=your-app-password
-```
+Resend API Configuration
+RESEND_API_KEY = 'XXXXXXXXXXXXXXXX'
+RESEND_FROM_EMAIL = 'XXXXXXXXXXXXXXXX'
 
 ---
 
