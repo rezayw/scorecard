@@ -147,6 +147,50 @@ def init_db():
         )
     ''')
     
+    # Create ForumPost table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ForumPost (
+            id TEXT PRIMARY KEY,
+            userId TEXT NOT NULL,
+            userName TEXT NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            category TEXT DEFAULT 'general',
+            likes INTEGER DEFAULT 0,
+            commentCount INTEGER DEFAULT 0,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (userId) REFERENCES User(id)
+        )
+    ''')
+    
+    # Create ForumComment table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ForumComment (
+            id TEXT PRIMARY KEY,
+            postId TEXT NOT NULL,
+            userId TEXT NOT NULL,
+            userName TEXT NOT NULL,
+            content TEXT NOT NULL,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (postId) REFERENCES ForumPost(id) ON DELETE CASCADE,
+            FOREIGN KEY (userId) REFERENCES User(id)
+        )
+    ''')
+    
+    # Create ForumLike table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ForumLike (
+            id TEXT PRIMARY KEY,
+            postId TEXT NOT NULL,
+            userId TEXT NOT NULL,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(postId, userId),
+            FOREIGN KEY (postId) REFERENCES ForumPost(id) ON DELETE CASCADE,
+            FOREIGN KEY (userId) REFERENCES User(id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -1112,6 +1156,273 @@ def get_current_user():
             }
         })
     return jsonify({'authenticated': False})
+
+
+# =====================================
+# Forum API Routes
+# =====================================
+
+@app.route('/api/forum/posts', methods=['GET'])
+def get_forum_posts():
+    """Get all forum posts"""
+    category = request.args.get('category', None)
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    if category and category != 'all':
+        cursor.execute('''
+            SELECT * FROM ForumPost WHERE category = ? ORDER BY createdAt DESC
+        ''', (category,))
+    else:
+        cursor.execute('SELECT * FROM ForumPost ORDER BY createdAt DESC')
+    
+    posts = [dict(row) for row in cursor.fetchall()]
+    
+    # Check if current user has liked each post
+    user_id = session.get('user_id')
+    if user_id:
+        for post in posts:
+            cursor.execute('SELECT id FROM ForumLike WHERE postId = ? AND userId = ?', 
+                          (post['id'], user_id))
+            post['isLiked'] = cursor.fetchone() is not None
+    
+    conn.close()
+    return jsonify(posts)
+
+
+@app.route('/api/forum/posts', methods=['POST'])
+def create_forum_post():
+    """Create a new forum post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please login to post'}), 401
+    
+    data = request.json
+    title = data.get('title', '').strip()
+    content = data.get('content', '').strip()
+    category = data.get('category', 'general')
+    
+    if not title or not content:
+        return jsonify({'success': False, 'message': 'Title and content are required'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    post_id = secrets.token_hex(16)
+    cursor.execute('''
+        INSERT INTO ForumPost (id, userId, userName, title, content, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (post_id, session['user_id'], session['user_name'], title, content, category))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Post created successfully',
+        'postId': post_id
+    })
+
+
+@app.route('/api/forum/posts/<post_id>', methods=['GET'])
+def get_forum_post(post_id):
+    """Get a single forum post with comments"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM ForumPost WHERE id = ?', (post_id,))
+    post = cursor.fetchone()
+    
+    if not post:
+        conn.close()
+        return jsonify({'error': 'Post not found'}), 404
+    
+    post = dict(post)
+    
+    # Get comments
+    cursor.execute('SELECT * FROM ForumComment WHERE postId = ? ORDER BY createdAt ASC', (post_id,))
+    post['comments'] = [dict(row) for row in cursor.fetchall()]
+    
+    # Check if current user has liked
+    user_id = session.get('user_id')
+    if user_id:
+        cursor.execute('SELECT id FROM ForumLike WHERE postId = ? AND userId = ?', (post_id, user_id))
+        post['isLiked'] = cursor.fetchone() is not None
+    
+    conn.close()
+    return jsonify(post)
+
+
+@app.route('/api/forum/posts/<post_id>', methods=['DELETE'])
+def delete_forum_post(post_id):
+    """Delete a forum post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please login'}), 401
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if user owns the post
+    cursor.execute('SELECT userId FROM ForumPost WHERE id = ?', (post_id,))
+    post = cursor.fetchone()
+    
+    if not post:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Post not found'}), 404
+    
+    if post[0] != session['user_id']:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    cursor.execute('DELETE FROM ForumPost WHERE id = ?', (post_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Post deleted'})
+
+
+@app.route('/api/forum/posts/<post_id>/comments', methods=['POST'])
+def add_forum_comment(post_id):
+    """Add a comment to a post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please login to comment'}), 401
+    
+    data = request.json
+    content = data.get('content', '').strip()
+    
+    if not content:
+        return jsonify({'success': False, 'message': 'Comment cannot be empty'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if post exists
+    cursor.execute('SELECT id FROM ForumPost WHERE id = ?', (post_id,))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'success': False, 'message': 'Post not found'}), 404
+    
+    comment_id = secrets.token_hex(16)
+    cursor.execute('''
+        INSERT INTO ForumComment (id, postId, userId, userName, content)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (comment_id, post_id, session['user_id'], session['user_name'], content))
+    
+    # Update comment count
+    cursor.execute('UPDATE ForumPost SET commentCount = commentCount + 1 WHERE id = ?', (post_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Comment added',
+        'comment': {
+            'id': comment_id,
+            'content': content,
+            'userName': session['user_name'],
+            'createdAt': datetime.now().isoformat()
+        }
+    })
+
+
+@app.route('/api/forum/posts/<post_id>/like', methods=['POST'])
+def toggle_forum_like(post_id):
+    """Toggle like on a post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please login to like'}), 401
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if already liked
+    cursor.execute('SELECT id FROM ForumLike WHERE postId = ? AND userId = ?', 
+                  (post_id, session['user_id']))
+    existing = cursor.fetchone()
+    
+    if existing:
+        # Unlike
+        cursor.execute('DELETE FROM ForumLike WHERE id = ?', (existing[0],))
+        cursor.execute('UPDATE ForumPost SET likes = likes - 1 WHERE id = ?', (post_id,))
+        liked = False
+    else:
+        # Like
+        like_id = secrets.token_hex(16)
+        cursor.execute('INSERT INTO ForumLike (id, postId, userId) VALUES (?, ?, ?)',
+                      (like_id, post_id, session['user_id']))
+        cursor.execute('UPDATE ForumPost SET likes = likes + 1 WHERE id = ?', (post_id,))
+        liked = True
+    
+    # Get new like count
+    cursor.execute('SELECT likes FROM ForumPost WHERE id = ?', (post_id,))
+    likes = cursor.fetchone()[0]
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'liked': liked, 'likes': likes})
+
+
+# Events Service Proxy Routes
+EVENTS_SERVICE_URL = os.environ.get('EVENTS_SERVICE_URL', 'http://localhost:5001')
+
+@app.route('/api/events', methods=['GET', 'POST'])
+def proxy_events():
+    try:
+        if request.method == 'GET':
+            resp = requests.get(f'{EVENTS_SERVICE_URL}/api/events', params=request.args, timeout=10)
+        else:
+            resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events', json=request.json, timeout=10)
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
+
+@app.route('/api/events/<int:event_id>', methods=['GET', 'PUT', 'DELETE'])
+def proxy_event_detail(event_id):
+    try:
+        if request.method == 'GET':
+            resp = requests.get(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', timeout=10)
+        elif request.method == 'PUT':
+            resp = requests.put(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', json=request.json, timeout=10)
+        else:
+            resp = requests.delete(f'{EVENTS_SERVICE_URL}/api/events/{event_id}', timeout=10)
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
+
+@app.route('/api/events/<int:event_id>/register', methods=['POST'])
+def proxy_event_register(event_id):
+    try:
+        resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/register', json=request.json, timeout=10)
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
+
+@app.route('/api/events/<int:event_id>/registrations', methods=['GET'])
+def proxy_event_registrations(event_id):
+    try:
+        resp = requests.get(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/registrations', timeout=10)
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
+
+@app.route('/api/events/<int:event_id>/cancel-registration', methods=['POST'])
+def proxy_cancel_registration(event_id):
+    try:
+        resp = requests.post(f'{EVENTS_SERVICE_URL}/api/events/{event_id}/cancel-registration', json=request.json, timeout=10)
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
+
+@app.route('/api/event-templates', methods=['GET'])
+def proxy_event_templates():
+    try:
+        resp = requests.get(f'{EVENTS_SERVICE_URL}/api/event-templates', timeout=10)
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Events service unavailable', 'details': str(e)}), 503
 
 
 @app.route('/api/courses')

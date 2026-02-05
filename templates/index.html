@@ -161,19 +161,31 @@
                 <button onclick="showGameSetup()" class="w-full btn-primary text-white py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2">
                     <span>🏌️</span> Start New Game
                 </button>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-3 gap-3">
                     <button onclick="showHistory()" class="py-3 bg-gray-100 text-gray-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-200 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        History
+                        <span class="hidden sm:inline">History</span>
                     </button>
                     <button onclick="showCourseList()" class="py-3 bg-gray-100 text-gray-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-200 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        Courses
+                        <span class="hidden sm:inline">Courses</span>
+                    </button>
+                    <button onclick="showEvents()" class="py-3 bg-amber-100 text-amber-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-amber-200 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span class="hidden sm:inline">Events</span>
+                    </button>
+                    <button onclick="showForum()" class="py-3 bg-golf-100 text-golf-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-golf-200 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                        </svg>
+                        <span class="hidden sm:inline">Forum</span>
                     </button>
                 </div>
             </div>
@@ -241,6 +253,135 @@
                 </div>
                 <div id="courseListContainer" class="space-y-4">
                     <!-- Dynamic course list -->
+                </div>
+            </section>
+            
+            <!-- Events Section -->
+            <section id="eventsSection" class="hidden">
+                <!-- Events Header -->
+                <div class="bg-gradient-to-r from-amber-600 to-orange-500 text-white px-4 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold">📅 Golf Events</h2>
+                            <p class="text-amber-100 text-xs">Tournaments, meetups & competitions</p>
+                        </div>
+                        <button onclick="showCreateEventModal()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-medium transition flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Event Category Filter -->
+                <div class="px-4 py-3 bg-white border-b overflow-x-auto">
+                    <div class="flex gap-2 min-w-max">
+                        <button onclick="filterEventCategory('all')" class="event-category-btn active px-4 py-2 rounded-full text-sm font-medium bg-amber-100 text-amber-700" data-category="all">
+                            All Events
+                        </button>
+                        <button onclick="filterEventCategory('tournament')" class="event-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="tournament">
+                            🏆 Tournament
+                        </button>
+                        <button onclick="filterEventCategory('monthly-medal')" class="event-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="monthly-medal">
+                            🎖️ Monthly Medal
+                        </button>
+                        <button onclick="filterEventCategory('corporate')" class="event-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="corporate">
+                            🏢 Corporate
+                        </button>
+                        <button onclick="filterEventCategory('charity')" class="event-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="charity">
+                            💝 Charity
+                        </button>
+                        <button onclick="filterEventCategory('junior')" class="event-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="junior">
+                            👶 Junior
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Events List -->
+                <div class="p-4 space-y-4" id="eventsListContainer">
+                    <div class="text-center py-8 text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p>Loading events...</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Event Detail Section -->
+            <section id="eventDetailSection" class="hidden">
+                <div class="bg-gradient-to-r from-amber-600 to-orange-500 text-white px-4 py-4">
+                    <div class="flex items-center gap-3">
+                        <button onclick="showEvents()" class="p-1 hover:bg-white/20 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div>
+                            <h2 class="text-xl font-bold">Event Details</h2>
+                            <p class="text-amber-100 text-xs">View event information</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="eventDetailContent" class="p-4">
+                    <!-- Dynamic event detail -->
+                </div>
+            </section>
+            
+            <!-- Forum Section -->
+            <section id="forumSection" class="hidden">
+                <!-- Forum Header -->
+                <div class="bg-golf-950 text-white px-4 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold">💬 Golf Forum</h2>
+                            <p class="text-golf-200 text-xs">Share tips & connect with golfers</p>
+                        </div>
+                        <button onclick="showCreatePostModal()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-medium transition flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Post
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Category Filter -->
+                <div class="px-4 py-3 bg-white border-b overflow-x-auto">
+                    <div class="flex gap-2 min-w-max">
+                        <button onclick="filterForumCategory('all')" class="forum-category-btn active px-4 py-2 rounded-full text-sm font-medium bg-golf-100 text-golf-700" data-category="all">
+                            All
+                        </button>
+                        <button onclick="filterForumCategory('tips')" class="forum-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="tips">
+                            🎯 Tips
+                        </button>
+                        <button onclick="filterForumCategory('course-review')" class="forum-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="course-review">
+                            ⭐ Reviews
+                        </button>
+                        <button onclick="filterForumCategory('equipment')" class="forum-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="equipment">
+                            🏌️ Equipment
+                        </button>
+                        <button onclick="filterForumCategory('general')" class="forum-category-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600" data-category="general">
+                            💬 General
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Posts List -->
+                <div class="p-4 space-y-4" id="forumPostsContainer">
+                    <!-- Dynamic posts -->
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-2">📝</div>
+                        <p>Loading posts...</p>
+                    </div>
+                </div>
+                
+                <!-- Back Button -->
+                <div class="px-4 pb-4">
+                    <button onclick="showLanding()" class="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium">
+                        ← Back to Home
+                    </button>
                 </div>
             </section>
             
@@ -643,6 +784,177 @@
                         
                         <button onclick="handleResetPassword()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
                             Reset Password
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Create Event Modal -->
+        <div id="createEventModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-lg sm:rounded-xl rounded-t-3xl slide-up max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white px-6 pt-6 pb-4 border-b z-10">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">📅 Create Event</h3>
+                        <button onclick="hideCreateEventModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <!-- Event Template Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Use Template (Optional)</label>
+                        <select id="eventTemplate" onchange="applyEventTemplate()" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 bg-white">
+                            <option value="">-- Select a template --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="border-t pt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                        <input type="text" id="eventTitle" placeholder="e.g., Monthly Medal January 2025" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                        <select id="eventCategory" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 bg-white">
+                            <option value="tournament">🏆 Tournament</option>
+                            <option value="monthly-medal">🎖️ Monthly Medal</option>
+                            <option value="corporate">🏢 Corporate Outing</option>
+                            <option value="charity">💝 Charity Golf</option>
+                            <option value="junior">👶 Junior Clinic</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="eventDescription" rows="3" placeholder="Describe your event..."
+                                  class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0 resize-none"></textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
+                            <input type="date" id="eventDate" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
+                            <input type="time" id="eventTime" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Venue/Course *</label>
+                        <input type="text" id="eventVenue" placeholder="e.g., Pondok Indah Golf Course" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Participants</label>
+                            <input type="number" id="eventMaxParticipants" placeholder="e.g., 72" min="1"
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Entry Fee</label>
+                            <input type="text" id="eventFee" placeholder="e.g., Rp 500.000" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                        <input type="text" id="eventContact" placeholder="Name & phone number" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Registration Deadline</label>
+                        <input type="date" id="eventRegDeadline" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                    </div>
+                    
+                    <button onclick="submitEvent()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold transition">
+                        Create Event
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Create Post Modal -->
+        <div id="createPostModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-lg sm:rounded-xl rounded-t-3xl slide-up max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white px-6 pt-6 pb-4 border-b">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">📝 Create Post</h3>
+                        <button onclick="hideCreatePostModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="postCategory" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 bg-white">
+                            <option value="general">💬 General Discussion</option>
+                            <option value="tips">🎯 Tips & Tricks</option>
+                            <option value="course-review">⭐ Course Review</option>
+                            <option value="equipment">🏌️ Equipment</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input type="text" id="postTitle" placeholder="What's on your mind?" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                        <textarea id="postContent" rows="5" placeholder="Share your thoughts, tips, or experiences..."
+                                  class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 resize-none"></textarea>
+                    </div>
+                    <button onclick="submitForumPost()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
+                        Post to Forum
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- View Post Modal -->
+        <div id="viewPostModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-lg sm:rounded-xl rounded-t-3xl slide-up max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white px-6 pt-6 pb-4 border-b z-10">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-gray-800">Post Details</h3>
+                        <button onclick="hideViewPostModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="viewPostContent" class="p-6">
+                    <!-- Dynamic post content -->
+                </div>
+                
+                <!-- Comment Input -->
+                <div class="sticky bottom-0 bg-white border-t p-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="commentInput" placeholder="Write a comment..." 
+                               class="flex-1 p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        <button onclick="submitComment()" class="px-4 py-3 btn-primary text-white rounded-xl font-medium">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
                         </button>
                     </div>
                 </div>

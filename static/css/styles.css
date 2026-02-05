@@ -317,6 +317,37 @@ button[onclick*="togglePassword"]:hover {
     cursor: not-allowed;
 }
 
+/* Forum Styles */
+.forum-category-btn {
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.forum-category-btn.active {
+    transform: scale(1.05);
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Forum Post Card */
+#forumPostsContainer > div {
+    transition: all 0.2s ease;
+}
+
+#forumPostsContainer > div:active {
+    transform: scale(0.98);
+}
+
+/* Comment Animation */
+#commentsContainer .slide-up {
+    animation: slideUp 0.3s ease forwards;
+}
+
 /* Print Styles */
 @media print {
     .no-print {

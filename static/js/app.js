@@ -23,6 +23,14 @@ let authState = {
     resendTimer: null
 };
 
+// Events State
+let eventsState = {
+    events: [],
+    templates: [],
+    currentEvent: null,
+    currentCategory: 'all'
+};
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     fetchCourses();
@@ -463,6 +471,1008 @@ async function handleLogout() {
 }
 
 // =====================================
+// Events Functions
+// =====================================
+
+function showEvents() {
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    
+    hideAllSteps();
+    document.getElementById('courseListSection').classList.add('hidden');
+    document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.remove('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
+    
+    const historySection = document.getElementById('historySection');
+    if (historySection) historySection.classList.add('hidden');
+    
+    loadEvents();
+    loadEventTemplates();
+}
+
+async function loadEvents(category = 'all') {
+    eventsState.currentCategory = category;
+    const container = document.getElementById('eventsListContainer');
+    container.innerHTML = `
+        <div class="text-center py-8 text-gray-500">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-amber-500 border-t-transparent mx-auto mb-2"></div>
+            <p>Loading events...</p>
+        </div>
+    `;
+    
+    try {
+        const url = category === 'all' ? '/api/events' : `/api/events?category=${category}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (response.ok) {
+            eventsState.events = data;
+            renderEvents(data);
+        } else {
+            throw new Error(data.error || 'Failed to load events');
+        }
+    } catch (error) {
+        console.error('Failed to load events:', error);
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">😔</div>
+                <p>Failed to load events</p>
+                <button onclick="loadEvents('${category}')" class="mt-2 text-amber-600 font-medium">Try again</button>
+            </div>
+        `;
+    }
+}
+
+async function loadEventTemplates() {
+    try {
+        const response = await fetch('/api/event-templates');
+        const data = await response.json();
+        
+        if (response.ok) {
+            eventsState.templates = data;
+            populateTemplateDropdown(data);
+        }
+    } catch (error) {
+        console.error('Failed to load templates:', error);
+    }
+}
+
+function populateTemplateDropdown(templates) {
+    const select = document.getElementById('eventTemplate');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">-- Select a template --</option>';
+    templates.forEach(template => {
+        select.innerHTML += `<option value="${template.id}">${template.name}</option>`;
+    });
+}
+
+function applyEventTemplate() {
+    const templateId = document.getElementById('eventTemplate').value;
+    if (!templateId) return;
+    
+    const template = eventsState.templates.find(t => t.id == templateId);
+    if (!template) return;
+    
+    document.getElementById('eventCategory').value = template.category;
+    document.getElementById('eventDescription').value = template.description || '';
+    if (template.defaultMaxParticipants) {
+        document.getElementById('eventMaxParticipants').value = template.defaultMaxParticipants;
+    }
+    if (template.defaultFee) {
+        document.getElementById('eventFee').value = template.defaultFee;
+    }
+    
+    showToast('Template applied! Customize as needed.');
+}
+
+function renderEvents(events) {
+    const container = document.getElementById('eventsListContainer');
+    
+    if (events.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12 text-gray-500">
+                <div class="text-6xl mb-4">📅</div>
+                <h3 class="font-semibold text-gray-700 mb-1">No events yet</h3>
+                <p class="text-sm">Be the first to create a golf event!</p>
+                <button onclick="showCreateEventModal()" class="mt-4 px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-sm font-medium">
+                    Create Event
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    const categoryIcons = {
+        'tournament': '🏆',
+        'monthly-medal': '🎖️',
+        'corporate': '🏢',
+        'charity': '💝',
+        'junior': '👶'
+    };
+    
+    container.innerHTML = events.map(event => {
+        const eventDate = new Date(event.eventDate);
+        const formattedDate = eventDate.toLocaleDateString('id-ID', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+        });
+        const formattedTime = event.eventTime ? event.eventTime.substring(0, 5) : '';
+        const isPast = eventDate < new Date();
+        const spotsLeft = event.maxParticipants ? event.maxParticipants - (event.registrationCount || 0) : null;
+        
+        return `
+        <div class="bg-white rounded-xl card-shadow overflow-hidden cursor-pointer hover:shadow-md transition ${isPast ? 'opacity-60' : ''}" 
+             onclick="viewEvent(${event.id})">
+            <div class="p-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <span class="text-2xl">${categoryIcons[event.category] || '📅'}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium capitalize">
+                                ${event.category.replace('-', ' ')}
+                            </span>
+                            ${isPast ? '<span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">Past</span>' : ''}
+                            ${event.status === 'cancelled' ? '<span class="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded-full">Cancelled</span>' : ''}
+                        </div>
+                        <h3 class="font-bold text-gray-800 mt-1 truncate">${event.title}</h3>
+                        <div class="text-sm text-gray-500 mt-1 space-y-0.5">
+                            <p class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                ${formattedDate}${formattedTime ? ` • ${formattedTime}` : ''}
+                            </p>
+                            <p class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                ${event.venue}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                ${spotsLeft !== null ? `
+                <div class="mt-3 pt-3 border-t flex items-center justify-between text-sm">
+                    <span class="text-gray-500">
+                        <span class="font-semibold text-gray-700">${event.registrationCount || 0}</span>/${event.maxParticipants} registered
+                    </span>
+                    ${!isPast && spotsLeft > 0 ? `
+                        <span class="text-green-600 font-medium">${spotsLeft} spots left</span>
+                    ` : ''}
+                    ${!isPast && spotsLeft === 0 ? `
+                        <span class="text-red-600 font-medium">Full</span>
+                    ` : ''}
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function filterEventCategory(category) {
+    document.querySelectorAll('.event-category-btn').forEach(btn => {
+        if (btn.dataset.category === category) {
+            btn.classList.remove('bg-gray-100', 'text-gray-600');
+            btn.classList.add('bg-amber-100', 'text-amber-700', 'active');
+        } else {
+            btn.classList.remove('bg-amber-100', 'text-amber-700', 'active');
+            btn.classList.add('bg-gray-100', 'text-gray-600');
+        }
+    });
+    loadEvents(category);
+}
+
+async function viewEvent(eventId) {
+    try {
+        const response = await fetch(`/api/events/${eventId}`);
+        const event = await response.json();
+        
+        if (response.ok) {
+            eventsState.currentEvent = event;
+            renderEventDetail(event);
+            
+            document.getElementById('eventsSection').classList.add('hidden');
+            document.getElementById('eventDetailSection').classList.remove('hidden');
+        } else {
+            showToast(event.error || 'Failed to load event');
+        }
+    } catch (error) {
+        console.error('Failed to load event:', error);
+        showToast('Failed to load event details');
+    }
+}
+
+function renderEventDetail(event) {
+    const container = document.getElementById('eventDetailContent');
+    const eventDate = new Date(event.eventDate);
+    const formattedDate = eventDate.toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+    });
+    const isPast = eventDate < new Date();
+    const isRegistered = event.registrations?.some(r => r.email === authState.user?.email);
+    const spotsLeft = event.maxParticipants ? event.maxParticipants - (event.registrations?.length || 0) : null;
+    const canRegister = !isPast && event.status !== 'cancelled' && (spotsLeft === null || spotsLeft > 0);
+    
+    const categoryIcons = {
+        'tournament': '🏆',
+        'monthly-medal': '🎖️',
+        'corporate': '🏢',
+        'charity': '💝',
+        'junior': '👶'
+    };
+    
+    container.innerHTML = `
+        <div class="space-y-4">
+            <!-- Event Header -->
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4">
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                    <span class="text-2xl">${categoryIcons[event.category] || '📅'}</span>
+                    <span class="text-sm px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-medium capitalize">
+                        ${event.category.replace('-', ' ')}
+                    </span>
+                    ${isPast ? '<span class="text-sm px-3 py-1 bg-gray-200 text-gray-600 rounded-full">Past Event</span>' : ''}
+                    ${event.status === 'cancelled' ? '<span class="text-sm px-3 py-1 bg-red-100 text-red-600 rounded-full">Cancelled</span>' : ''}
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">${event.title}</h2>
+                <p class="text-sm text-gray-500 mt-1">Organized by ${event.organizer || 'Anonymous'}</p>
+            </div>
+            
+            <!-- Event Details -->
+            <div class="bg-white rounded-xl card-shadow p-4 space-y-3">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800">${formattedDate}</p>
+                        <p class="text-sm text-gray-500">${event.eventTime ? event.eventTime.substring(0, 5) + ' WIB' : 'Time TBA'}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800">${event.venue}</p>
+                        <p class="text-sm text-gray-500">Venue</p>
+                    </div>
+                </div>
+                
+                ${event.entryFee ? `
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800">${event.entryFee}</p>
+                        <p class="text-sm text-gray-500">Entry Fee</p>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${event.contactPerson ? `
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800">${event.contactPerson}</p>
+                        <p class="text-sm text-gray-500">Contact</p>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <!-- Description -->
+            ${event.description ? `
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <h3 class="font-semibold text-gray-800 mb-2">About This Event</h3>
+                <p class="text-gray-600 text-sm whitespace-pre-line">${event.description}</p>
+            </div>
+            ` : ''}
+            
+            <!-- Registration Status -->
+            ${event.maxParticipants ? `
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <h3 class="font-semibold text-gray-800 mb-3">Registration</h3>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-600">Registered</span>
+                    <span class="font-bold text-gray-800">${event.registrations?.length || 0} / ${event.maxParticipants}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all" 
+                         style="width: ${Math.min(100, ((event.registrations?.length || 0) / event.maxParticipants) * 100)}%"></div>
+                </div>
+                ${event.registrationDeadline ? `
+                <p class="text-sm text-gray-500 mt-2">
+                    Registration deadline: ${new Date(event.registrationDeadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+                ` : ''}
+            </div>
+            ` : ''}
+            
+            <!-- Participants List -->
+            ${event.registrations && event.registrations.length > 0 ? `
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <h3 class="font-semibold text-gray-800 mb-3">Participants (${event.registrations.length})</h3>
+                <div class="space-y-2 max-h-40 overflow-y-auto">
+                    ${event.registrations.map((reg, index) => `
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center text-xs font-medium text-amber-700">${index + 1}</span>
+                            <span class="text-gray-700">${reg.participantName}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Action Buttons -->
+            <div class="space-y-3 pt-2">
+                ${!isPast && event.status !== 'cancelled' ? `
+                    ${isRegistered ? `
+                        <button onclick="cancelEventRegistration(${event.id})" 
+                                class="w-full py-3 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition">
+                            Cancel My Registration
+                        </button>
+                    ` : `
+                        ${canRegister ? `
+                            <button onclick="showRegisterEventModal(${event.id})" 
+                                    class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition">
+                                Register for Event
+                            </button>
+                        ` : `
+                            <button disabled 
+                                    class="w-full py-3 bg-gray-200 text-gray-500 rounded-xl font-semibold cursor-not-allowed">
+                                ${spotsLeft === 0 ? 'Event Full' : 'Registration Closed'}
+                            </button>
+                        `}
+                    `}
+                ` : ''}
+                
+                <button onclick="showEvents()" 
+                        class="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                    Back to Events
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function showRegisterEventModal(eventId) {
+    if (!authState.user) {
+        showToast('Please login to register for events');
+        showAuthModal('login');
+        return;
+    }
+    
+    const event = eventsState.currentEvent;
+    const html = `
+        <div class="fixed inset-0 bg-black/50 modal-backdrop z-50 flex items-end sm:items-center justify-center" id="registerEventModal">
+            <div class="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-3xl p-6 slide-up">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">📝 Register for Event</h3>
+                <p class="text-gray-600 mb-4">${event.title}</p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
+                        <input type="text" id="regParticipantName" value="${authState.user.name || ''}"
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                        <input type="email" id="regParticipantEmail" value="${authState.user.email || ''}"
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input type="tel" id="regParticipantPhone" placeholder="e.g., 08123456789"
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Handicap Index</label>
+                        <input type="number" id="regParticipantHandicap" placeholder="e.g., 18" step="0.1"
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-0">
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeRegisterEventModal()" class="flex-1 py-3 bg-gray-200 rounded-xl font-medium">Cancel</button>
+                    <button onclick="submitEventRegistration(${eventId})" class="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium">Register</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function closeRegisterEventModal() {
+    const modal = document.getElementById('registerEventModal');
+    if (modal) modal.remove();
+}
+
+async function submitEventRegistration(eventId) {
+    const name = document.getElementById('regParticipantName').value.trim();
+    const email = document.getElementById('regParticipantEmail').value.trim();
+    const phone = document.getElementById('regParticipantPhone').value.trim();
+    const handicap = document.getElementById('regParticipantHandicap').value;
+    
+    if (!name || !email) {
+        showToast('Please fill in required fields');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch(`/api/events/${eventId}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                participantName: name,
+                email: email,
+                phone: phone,
+                handicap: handicap ? parseFloat(handicap) : null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Successfully registered! 🎉');
+            closeRegisterEventModal();
+            viewEvent(eventId); // Refresh event detail
+        } else {
+            showToast(data.error || 'Registration failed');
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        showToast('Failed to register. Please try again.');
+    }
+    
+    showLoading(false);
+}
+
+async function cancelEventRegistration(eventId) {
+    if (!authState.user) {
+        showToast('Please login first');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to cancel your registration?')) {
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch(`/api/events/${eventId}/cancel-registration`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: authState.user.email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Registration cancelled');
+            viewEvent(eventId); // Refresh event detail
+        } else {
+            showToast(data.error || 'Failed to cancel');
+        }
+    } catch (error) {
+        console.error('Cancel error:', error);
+        showToast('Failed to cancel registration');
+    }
+    
+    showLoading(false);
+}
+
+function showCreateEventModal() {
+    if (!authState.user) {
+        showToast('Please login to create events');
+        showAuthModal('login');
+        return;
+    }
+    
+    // Clear form
+    document.getElementById('eventTemplate').value = '';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventCategory').value = 'tournament';
+    document.getElementById('eventDescription').value = '';
+    document.getElementById('eventDate').value = '';
+    document.getElementById('eventTime').value = '';
+    document.getElementById('eventVenue').value = '';
+    document.getElementById('eventMaxParticipants').value = '';
+    document.getElementById('eventFee').value = '';
+    document.getElementById('eventContact').value = '';
+    document.getElementById('eventRegDeadline').value = '';
+    
+    document.getElementById('createEventModal').classList.remove('hidden');
+}
+
+function hideCreateEventModal() {
+    document.getElementById('createEventModal').classList.add('hidden');
+}
+
+async function submitEvent() {
+    const title = document.getElementById('eventTitle').value.trim();
+    const category = document.getElementById('eventCategory').value;
+    const description = document.getElementById('eventDescription').value.trim();
+    const eventDate = document.getElementById('eventDate').value;
+    const eventTime = document.getElementById('eventTime').value;
+    const venue = document.getElementById('eventVenue').value.trim();
+    const maxParticipants = document.getElementById('eventMaxParticipants').value;
+    const entryFee = document.getElementById('eventFee').value.trim();
+    const contactPerson = document.getElementById('eventContact').value.trim();
+    const registrationDeadline = document.getElementById('eventRegDeadline').value;
+    
+    if (!title || !category || !eventDate || !eventTime || !venue) {
+        showToast('Please fill in all required fields');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title,
+                category,
+                description,
+                eventDate,
+                eventTime,
+                venue,
+                maxParticipants: maxParticipants ? parseInt(maxParticipants) : null,
+                entryFee,
+                contactPerson,
+                registrationDeadline,
+                organizer: authState.user.name || authState.user.email
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Event created successfully! 🎉');
+            hideCreateEventModal();
+            loadEvents(eventsState.currentCategory);
+        } else {
+            showToast(data.error || 'Failed to create event');
+        }
+    } catch (error) {
+        console.error('Create event error:', error);
+        showToast('Failed to create event');
+    }
+    
+    showLoading(false);
+}
+
+// =====================================
+// Forum Functions
+// =====================================
+
+let forumState = {
+    posts: [],
+    currentPost: null,
+    currentCategory: 'all'
+};
+
+function showForum() {
+    document.getElementById('landingPage').classList.add('hidden');
+    document.getElementById('appHeader').classList.remove('hidden');
+    document.getElementById('progressBar').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    
+    hideAllSteps();
+    document.getElementById('courseListSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.add('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
+    document.getElementById('forumSection').classList.remove('hidden');
+    
+    const historySection = document.getElementById('historySection');
+    if (historySection) historySection.classList.add('hidden');
+    
+    loadForumPosts();
+}
+
+async function loadForumPosts(category = 'all') {
+    forumState.currentCategory = category;
+    const container = document.getElementById('forumPostsContainer');
+    container.innerHTML = `
+        <div class="text-center py-8 text-gray-500">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-golf-500 border-t-transparent mx-auto mb-2"></div>
+            <p>Loading posts...</p>
+        </div>
+    `;
+    
+    try {
+        const url = category === 'all' ? '/api/forum/posts' : `/api/forum/posts?category=${category}`;
+        const response = await fetch(url);
+        const posts = await response.json();
+        forumState.posts = posts;
+        
+        renderForumPosts(posts);
+    } catch (error) {
+        console.error('Failed to load posts:', error);
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">😔</div>
+                <p>Failed to load posts</p>
+                <button onclick="loadForumPosts('${category}')" class="mt-2 text-golf-600 font-medium">Try again</button>
+            </div>
+        `;
+    }
+}
+
+function renderForumPosts(posts) {
+    const container = document.getElementById('forumPostsContainer');
+    
+    if (posts.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12 text-gray-500">
+                <div class="text-6xl mb-4">💬</div>
+                <h3 class="font-semibold text-gray-700 mb-1">No posts yet</h3>
+                <p class="text-sm">Be the first to start a conversation!</p>
+                <button onclick="showCreatePostModal()" class="mt-4 px-6 py-2 btn-primary text-white rounded-full text-sm font-medium">
+                    Create Post
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    const categoryIcons = {
+        'general': '💬',
+        'tips': '🎯',
+        'course-review': '⭐',
+        'equipment': '🏌️'
+    };
+    
+    container.innerHTML = posts.map(post => `
+        <div class="bg-white rounded-xl card-shadow p-4 cursor-pointer hover:shadow-md transition" onclick="viewPost('${post.id}')">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-golf-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-lg">${post.userName.charAt(0).toUpperCase()}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-gray-800 text-sm">${post.userName}</span>
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-xs text-gray-400">${formatTimeAgo(post.createdAt)}</span>
+                    </div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xs bg-golf-50 text-golf-700 px-2 py-0.5 rounded-full">${categoryIcons[post.category] || '💬'} ${formatCategory(post.category)}</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 mb-1 line-clamp-2">${escapeHtml(post.title)}</h3>
+                    <p class="text-gray-600 text-sm line-clamp-2">${escapeHtml(post.content)}</p>
+                    <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                        <span class="flex items-center gap-1 ${post.isLiked ? 'text-red-500' : ''}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="${post.isLiked ? 'currentColor' : 'none'}" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            ${post.likes}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            ${post.commentCount}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterForumCategory(category) {
+    // Update UI
+    document.querySelectorAll('.forum-category-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-golf-100', 'text-golf-700');
+        btn.classList.add('bg-gray-100', 'text-gray-600');
+    });
+    
+    const activeBtn = document.querySelector(`.forum-category-btn[data-category="${category}"]`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-100', 'text-gray-600');
+        activeBtn.classList.add('active', 'bg-golf-100', 'text-golf-700');
+    }
+    
+    loadForumPosts(category);
+}
+
+function showCreatePostModal() {
+    if (!authState.user) {
+        showToast('Please login to create a post');
+        showAuthModal();
+        return;
+    }
+    
+    document.getElementById('createPostModal').classList.remove('hidden');
+    document.getElementById('postTitle').value = '';
+    document.getElementById('postContent').value = '';
+    document.getElementById('postCategory').value = 'general';
+}
+
+function hideCreatePostModal() {
+    document.getElementById('createPostModal').classList.add('hidden');
+}
+
+async function submitForumPost() {
+    const title = document.getElementById('postTitle').value.trim();
+    const content = document.getElementById('postContent').value.trim();
+    const category = document.getElementById('postCategory').value;
+    
+    if (!title || !content) {
+        showToast('Please fill in all fields');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/forum/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content, category })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            hideCreatePostModal();
+            showToast('Post created successfully!');
+            loadForumPosts(forumState.currentCategory);
+        } else {
+            showToast(data.message || 'Failed to create post');
+        }
+    } catch (error) {
+        showToast('Failed to create post');
+    }
+    
+    showLoading(false);
+}
+
+async function viewPost(postId) {
+    showLoading(true);
+    
+    try {
+        const response = await fetch(`/api/forum/posts/${postId}`);
+        const post = await response.json();
+        
+        if (post.error) {
+            showToast('Post not found');
+            showLoading(false);
+            return;
+        }
+        
+        forumState.currentPost = post;
+        renderPostDetail(post);
+        document.getElementById('viewPostModal').classList.remove('hidden');
+    } catch (error) {
+        showToast('Failed to load post');
+    }
+    
+    showLoading(false);
+}
+
+function renderPostDetail(post) {
+    const categoryIcons = {
+        'general': '💬',
+        'tips': '🎯',
+        'course-review': '⭐',
+        'equipment': '🏌️'
+    };
+    
+    const container = document.getElementById('viewPostContent');
+    container.innerHTML = `
+        <div class="mb-4">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 bg-golf-100 rounded-full flex items-center justify-center">
+                    <span class="text-xl">${post.userName.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                    <div class="font-semibold text-gray-800">${post.userName}</div>
+                    <div class="text-xs text-gray-400">${formatTimeAgo(post.createdAt)}</div>
+                </div>
+            </div>
+            <span class="inline-block text-xs bg-golf-50 text-golf-700 px-3 py-1 rounded-full mb-3">
+                ${categoryIcons[post.category] || '💬'} ${formatCategory(post.category)}
+            </span>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">${escapeHtml(post.title)}</h2>
+            <p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+        </div>
+        
+        <!-- Like Button -->
+        <div class="flex items-center gap-4 py-3 border-y">
+            <button onclick="toggleLike('${post.id}')" class="flex items-center gap-2 ${post.isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-500 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${post.isLiked ? 'currentColor' : 'none'}" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span id="postLikeCount">${post.likes}</span> likes
+            </button>
+            <span class="text-gray-400">•</span>
+            <span class="text-gray-500">${post.commentCount} comments</span>
+        </div>
+        
+        <!-- Comments -->
+        <div class="mt-4">
+            <h3 class="font-semibold text-gray-800 mb-3">Comments</h3>
+            <div id="commentsContainer" class="space-y-3">
+                ${post.comments && post.comments.length > 0 ? post.comments.map(comment => `
+                    <div class="bg-gray-50 rounded-xl p-3">
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-6 h-6 bg-golf-200 rounded-full flex items-center justify-center text-xs font-medium">
+                                ${comment.userName.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="font-medium text-sm text-gray-800">${comment.userName}</span>
+                            <span class="text-xs text-gray-400">${formatTimeAgo(comment.createdAt)}</span>
+                        </div>
+                        <p class="text-gray-600 text-sm pl-8">${escapeHtml(comment.content)}</p>
+                    </div>
+                `).join('') : '<p class="text-gray-400 text-sm text-center py-4">No comments yet. Be the first to comment!</p>'}
+            </div>
+        </div>
+    `;
+}
+
+function hideViewPostModal() {
+    document.getElementById('viewPostModal').classList.add('hidden');
+    forumState.currentPost = null;
+}
+
+async function toggleLike(postId) {
+    if (!authState.user) {
+        showToast('Please login to like posts');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/forum/posts/${postId}/like`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update UI
+            forumState.currentPost.isLiked = data.liked;
+            forumState.currentPost.likes = data.likes;
+            document.getElementById('postLikeCount').textContent = data.likes;
+            
+            // Update like button appearance
+            const likeBtn = document.querySelector(`button[onclick="toggleLike('${postId}')"]`);
+            if (likeBtn) {
+                likeBtn.classList.toggle('text-red-500', data.liked);
+                likeBtn.classList.toggle('text-gray-500', !data.liked);
+                const svg = likeBtn.querySelector('svg');
+                svg.setAttribute('fill', data.liked ? 'currentColor' : 'none');
+            }
+            
+            // Update post in list
+            loadForumPosts(forumState.currentCategory);
+        }
+    } catch (error) {
+        showToast('Failed to update like');
+    }
+}
+
+async function submitComment() {
+    if (!authState.user) {
+        showToast('Please login to comment');
+        return;
+    }
+    
+    const input = document.getElementById('commentInput');
+    const content = input.value.trim();
+    
+    if (!content) {
+        showToast('Please enter a comment');
+        return;
+    }
+    
+    if (!forumState.currentPost) return;
+    
+    try {
+        const response = await fetch(`/api/forum/posts/${forumState.currentPost.id}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            input.value = '';
+            
+            // Add comment to UI
+            const commentsContainer = document.getElementById('commentsContainer');
+            const noComments = commentsContainer.querySelector('p.text-center');
+            if (noComments) noComments.remove();
+            
+            const commentHtml = `
+                <div class="bg-gray-50 rounded-xl p-3 slide-up">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 bg-golf-200 rounded-full flex items-center justify-center text-xs font-medium">
+                            ${data.comment.userName.charAt(0).toUpperCase()}
+                        </div>
+                        <span class="font-medium text-sm text-gray-800">${data.comment.userName}</span>
+                        <span class="text-xs text-gray-400">just now</span>
+                    </div>
+                    <p class="text-gray-600 text-sm pl-8">${escapeHtml(data.comment.content)}</p>
+                </div>
+            `;
+            commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+            
+            // Update comment count
+            forumState.currentPost.commentCount++;
+            loadForumPosts(forumState.currentCategory);
+            
+            showToast('Comment added');
+        } else {
+            showToast(data.message || 'Failed to add comment');
+        }
+    } catch (error) {
+        showToast('Failed to add comment');
+    }
+}
+
+function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    
+    return date.toLocaleDateString();
+}
+
+function formatCategory(category) {
+    const names = {
+        'general': 'General',
+        'tips': 'Tips',
+        'course-review': 'Review',
+        'equipment': 'Equipment'
+    };
+    return names[category] || category;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// =====================================
 // Landing Page Functions
 // =====================================
 
@@ -473,6 +1483,9 @@ function showLanding() {
     document.getElementById('mainContent').classList.add('hidden');
     hideAllSteps();
     document.getElementById('courseListSection').classList.add('hidden');
+    document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.add('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
     loadLandingStats();
 }
 
@@ -482,6 +1495,9 @@ function showGameSetup() {
     document.getElementById('progressBar').classList.remove('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     document.getElementById('courseListSection').classList.add('hidden');
+    document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.add('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
     showStep(1);
 }
 
@@ -491,6 +1507,9 @@ function showCourseList() {
     document.getElementById('progressBar').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     document.getElementById('courseListSection').classList.remove('hidden');
+    document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.add('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
     hideAllSteps();
     renderCourseList();
 }
@@ -1126,6 +2145,9 @@ function showHistory() {
     document.getElementById('progressBar').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     document.getElementById('courseListSection').classList.add('hidden');
+    document.getElementById('forumSection').classList.add('hidden');
+    document.getElementById('eventsSection').classList.add('hidden');
+    document.getElementById('eventDetailSection').classList.add('hidden');
     
     document.getElementById('step1').classList.add('hidden');
     document.getElementById('step2').classList.add('hidden');
