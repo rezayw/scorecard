@@ -1,7 +1,7 @@
 {
-    "name": "Golf Scorecard Indonesia",
-    "short_name": "Golf Score",
-    "description": "Track your golf scores across Indonesian golf courses",
+    "name": "Ganesha Golf - ITB",
+    "short_name": "Ganesha Golf",
+    "description": "Track your golf scores across ITB Students",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0F3B2E",

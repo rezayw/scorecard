@@ -6,10 +6,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0F3B2E">
-    <meta name="description" content="Golf Scorecard App - Track your golf scores in Indonesia">
+    <meta name="description" content="Ganesha Golf - Track your golf scores across ITB Students">
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-    <title>Golf Scorecard - Indonesia</title>
+    <title>Ganesha Golf - ITB</title>
     
     <!-- Google Fonts - Bebas Neue -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -67,18 +67,18 @@
                 
                 <!-- Background Pattern -->
                 <div class="absolute inset-0 opacity-10">
-                    <div class="absolute top-10 left-10 text-8xl">⛳</div>
+                    <div class="absolute top-10 left-10 text-8xl"><img src="https://blogger.googleusercontent.com/img/a/AVvXsEjWraAxkRDZ6dtC_5SC87ky1N5BkbWi3NTwSLc4o9O0denQrNB7pN-l8NwOGV9A9-FMpWv7ulseyfE5epbZv8SqBCmK8f3G0KDoEaC33XAf3NNgSXeNju9AMvGW3Lgeu_FqCYvDP7inL_A4UQdLEzmLEjGwu88IhbEMbj_zBgs6nGOSqp8oaREaNnHfeUlr" class="w-20 h-20 opacity-50" alt=""></div>
                     <div class="absolute bottom-10 right-10 text-6xl">🏌️</div>
                     <div class="absolute top-1/2 left-1/2 text-4xl">🏆</div>
                 </div>
                 
                 <div class="relative z-10 text-center">
-                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-4 backdrop-blur-sm">
-                        <span class="text-4xl">⛳</span>
+                    <div class="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full mb-4 backdrop-blur-sm p-2">
+                        <img src="https://blogger.googleusercontent.com/img/a/AVvXsEjWraAxkRDZ6dtC_5SC87ky1N5BkbWi3NTwSLc4o9O0denQrNB7pN-l8NwOGV9A9-FMpWv7ulseyfE5epbZv8SqBCmK8f3G0KDoEaC33XAf3NNgSXeNju9AMvGW3Lgeu_FqCYvDP7inL_A4UQdLEzmLEjGwu88IhbEMbj_zBgs6nGOSqp8oaREaNnHfeUlr" class="w-full h-full object-contain" alt="Ganesha Golf">
                     </div>
-                    <h1 class="text-3xl font-bold mb-2">Golf Scorecard</h1>
-                    <p class="text-golf-200 text-lg">Indonesia Edition</p>
-                    <p class="text-golf-300 text-sm mt-2">Track your golf scores across premium Indonesian courses</p>
+                    <h1 class="text-3xl font-bold mb-2">Ganesha Golf</h1>
+                    <p class="text-golf-200 text-lg">Unit Ganesha Golf</p>
+                    <p class="text-golf-300 text-sm mt-2">Track your golf scores across ITB Students</p>
                 </div>
             </div>
             
@@ -129,11 +129,11 @@
             <div id="quickStatsCard" class="px-4 -mt-8 relative z-20">
                 <div class="bg-white rounded-2xl shadow-lg p-4 grid grid-cols-3 gap-4">
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-golf-600" id="statCourses">51</div>
+                        <div class="text-2xl font-bold text-golf-600" id="statCourses">-</div>
                         <div class="text-xs text-gray-500">Courses</div>
                     </div>
                     <div class="text-center border-x border-gray-100">
-                        <div class="text-2xl font-bold text-golf-600" id="statRegions">16</div>
+                        <div class="text-2xl font-bold text-golf-600" id="statRegions">-</div>
                         <div class="text-xs text-gray-500">Regions</div>
                     </div>
                     <div class="text-center">
@@ -172,15 +172,6 @@
                         <div>
                             <h3 class="font-medium text-gray-800">PDF Export</h3>
                             <p class="text-xs text-gray-500">Download or email your scorecard</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                            <span class="text-lg">📱</span>
-                        </div>
-                        <div>
-                            <h3 class="font-medium text-gray-800">Works Offline</h3>
-                            <p class="text-xs text-gray-500">Install as app on your phone</p>
                         </div>
                     </div>
                 </div>
@@ -239,8 +230,8 @@
                         </svg>
                     </button>
                     <div>
-                        <h1 class="text-lg font-bold">Golf Scorecard</h1>
-                        <p class="text-xs text-golf-200">Indonesia Edition</p>
+                        <h1 class="text-lg font-bold">Ganesha Golf</h1>
+                        <p class="text-xs text-golf-200">Unit Ganesha Golf</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -539,6 +530,25 @@
             
             <!-- Step 1: Game Setup -->
             <section id="step1" class="p-4 slide-up hidden">
+                <!-- Resume Game Banner -->
+                <div id="resumeGameBanner" class="hidden mb-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">⏸️</span>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-amber-800">Continue Previous Game?</h3>
+                            <p id="resumeGameInfo" class="text-sm text-amber-600">You have an unfinished game</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="resumeSavedGame()" class="flex-1 py-2 bg-amber-500 text-white rounded-lg font-semibold">
+                            Continue Game
+                        </button>
+                        <button onclick="discardSavedGame()" class="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold">
+                            Start Fresh
+                        </button>
+                    </div>
+                </div>
+                
                 <h2 class="text-xl font-bold text-gray-800 mb-4">🏌️ Start New Game</h2>
                 
                 <!-- Select Region -->
@@ -787,6 +797,48 @@
                     </div>
                     <div id="recommendations" class="p-4 space-y-2 text-sm">
                         <!-- Dynamic recommendations -->
+                    </div>
+                </div>
+                
+                <!-- Photo Upload Section (Required before download) -->
+                <div id="photoUploadSection" class="bg-white rounded-xl card-shadow overflow-hidden mb-4">
+                    <div class="bg-purple-600 text-white px-4 py-3">
+                        <h3 class="font-semibold">📸 Game Photo (Required)</h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-sm text-gray-600 mb-4">Please take or upload a photo of your game to verify your scorecard before downloading.</p>
+                        
+                        <!-- Photo Preview -->
+                        <div id="photoPreviewContainer" class="hidden mb-4">
+                            <img id="photoPreview" src="" alt="Game Photo" class="w-full h-48 object-cover rounded-xl">
+                            <button onclick="removePhoto()" class="mt-2 text-red-500 text-sm flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Remove Photo
+                            </button>
+                        </div>
+                        
+                        <!-- Photo Buttons -->
+                        <div id="photoButtons" class="grid grid-cols-2 gap-3">
+                            <button onclick="openCamera()" class="py-3 bg-purple-100 text-purple-700 rounded-xl font-semibold flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Take Photo
+                            </button>
+                            <label class="py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Upload Photo
+                                <input type="file" id="photoUpload" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                            </label>
+                        </div>
+                        
+                        <!-- Hidden camera input -->
+                        <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)">
                     </div>
                 </div>
                 

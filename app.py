@@ -527,9 +527,9 @@ def get_otp_email_template(otp, otp_type='verify'):
                         <!-- Header -->
                         <tr>
                             <td style="background: linear-gradient(135deg, #0A241C 0%, #0F3B2E 50%, #C9A84E 100%); padding: 40px 30px; text-align: center; border-radius: 16px 16px 0 0;">
-                                <div style="font-size: 48px; margin-bottom: 10px;">⛳</div>
-                                <h1 style="color: #F3F1EC; margin: 0; font-size: 28px; font-weight: bold; font-family: 'Bebas Neue', sans-serif;">Golf Scorecard</h1>
-                                <p style="color: #E6C36A; margin: 5px 0 0 0; font-size: 14px; font-family: 'Bebas Neue', sans-serif;">Indonesia Edition</p>
+                                <div style="font-size: 48px; margin-bottom: 10px;">🏌️</div>
+                                <h1 style="color: #F3F1EC; margin: 0; font-size: 28px; font-weight: bold; font-family: 'Bebas Neue', sans-serif;">Ganesha Golf</h1>
+                                <p style="color: #E6C36A; margin: 5px 0 0 0; font-size: 14px; font-family: 'Bebas Neue', sans-serif;">Unit Ganesha Golf</p>
                             </td>
                         </tr>
                         

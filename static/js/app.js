@@ -11,8 +11,14 @@ let gameState = {
     currentHole: 1,
     scores: {},
     results: null,
-    gameId: null
+    gameId: null,
+    gamePhoto: null, // Photo data URL for verification
+    gameStartedAt: null,
+    isGameInProgress: false
 };
+
+// Autosave key for localStorage
+const AUTOSAVE_KEY = 'ganesha_golf_autosave';
 
 // Auth State
 let authState = {
@@ -38,7 +44,107 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
     loadLandingStats();
     checkAuthStatus();
+    checkSavedGame();
+    
+    // Autosave every 10 seconds when game is in progress
+    setInterval(autoSaveGame, 10000);
 });
+
+// =====================================
+// Autosave & Session Resume Functions
+// =====================================
+
+function autoSaveGame() {
+    if (gameState.isGameInProgress && gameState.selectedCourse) {
+        const saveData = {
+            selectedCourse: gameState.selectedCourse,
+            holeCount: gameState.holeCount,
+            playerCount: gameState.playerCount,
+            players: gameState.players,
+            currentHole: gameState.currentHole,
+            scores: gameState.scores,
+            gameId: gameState.gameId,
+            gameStartedAt: gameState.gameStartedAt,
+            savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(saveData));
+        console.log('Game autosaved');
+    }
+}
+
+function checkSavedGame() {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) {
+        try {
+            const saveData = JSON.parse(saved);
+            const banner = document.getElementById('resumeGameBanner');
+            const info = document.getElementById('resumeGameInfo');
+            
+            if (banner && saveData.selectedCourse) {
+                const courseName = saveData.selectedCourse.name;
+                const hole = saveData.currentHole;
+                const totalHoles = saveData.holeCount;
+                const savedTime = new Date(saveData.savedAt).toLocaleString();
+                
+                info.textContent = `${courseName} • Hole ${hole}/${totalHoles} • Saved: ${savedTime}`;
+                banner.classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error('Failed to parse saved game:', e);
+            localStorage.removeItem(AUTOSAVE_KEY);
+        }
+    }
+}
+
+function resumeSavedGame() {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) {
+        try {
+            const saveData = JSON.parse(saved);
+            
+            // Restore game state
+            gameState.selectedCourse = saveData.selectedCourse;
+            gameState.holeCount = saveData.holeCount;
+            gameState.playerCount = saveData.playerCount;
+            gameState.players = saveData.players;
+            gameState.currentHole = saveData.currentHole;
+            gameState.scores = saveData.scores;
+            gameState.gameId = saveData.gameId;
+            gameState.gameStartedAt = saveData.gameStartedAt;
+            gameState.isGameInProgress = true;
+            
+            // Hide resume banner
+            document.getElementById('resumeGameBanner').classList.add('hidden');
+            
+            // Show step 2 (scoring)
+            document.getElementById('landingPage').classList.add('hidden');
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            document.getElementById('scorecardHeader').classList.remove('hidden');
+            
+            updateStepIndicators(2);
+            updateHoleDisplay();
+            updateScoreEntryCards();
+            
+            showToast('Game resumed successfully!');
+        } catch (e) {
+            console.error('Failed to resume game:', e);
+            showToast('Failed to resume game');
+            discardSavedGame();
+        }
+    }
+}
+
+function discardSavedGame() {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    document.getElementById('resumeGameBanner').classList.add('hidden');
+    showToast('Saved game discarded');
+}
+
+function clearAutosave() {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    gameState.isGameInProgress = false;
+}
 
 // =====================================
 // Authentication Functions
@@ -2262,6 +2368,9 @@ async function startGame() {
     });
     
     gameState.currentHole = 1;
+    gameState.isGameInProgress = true;
+    gameState.gameStartedAt = new Date().toISOString();
+    gameState.gamePhoto = null; // Reset photo for new game
     
     // Create game in database
     try {
@@ -2287,6 +2396,9 @@ async function startGame() {
     } catch (error) {
         console.error('Failed to create game:', error);
     }
+    
+    // Initial autosave
+    autoSaveGame();
     
     // Update UI
     document.getElementById('step1').classList.add('hidden');
@@ -2465,6 +2577,13 @@ async function finishGame() {
         });
         
         gameState.results = await response.json();
+        
+        // Clear autosave since game is finished
+        clearAutosave();
+        
+        // Reset photo state for new download
+        gameState.gamePhoto = null;
+        resetPhotoUI();
         
         showLoading(false);
         document.getElementById('step2').classList.add('hidden');
@@ -2953,13 +3072,26 @@ function showStep(stepNum) {
 // =====================================
 
 async function downloadPDF() {
+    // Check if photo is uploaded
+    if (!gameState.gamePhoto) {
+        showToast('Please upload a game photo before downloading');
+        document.getElementById('photoUploadSection').scrollIntoView({ behavior: 'smooth' });
+        return;
+    }
+    
     showLoading(true);
     
     try {
+        // Include photo in the results
+        const resultsWithPhoto = {
+            ...gameState.results,
+            gamePhoto: gameState.gamePhoto
+        };
+        
         const response = await fetch('/api/generate-pdf', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(gameState.results)
+            body: JSON.stringify(resultsWithPhoto)
         });
         
         const blob = await response.blob();
@@ -2981,6 +3113,52 @@ async function downloadPDF() {
     }
 }
 
+// =====================================
+// Photo Capture/Upload Functions
+// =====================================
+
+function openCamera() {
+    document.getElementById('cameraInput').click();
+}
+
+function handlePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('Photo size must be less than 5MB');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            gameState.gamePhoto = e.target.result;
+            
+            // Show preview
+            document.getElementById('photoPreview').src = e.target.result;
+            document.getElementById('photoPreviewContainer').classList.remove('hidden');
+            document.getElementById('photoButtons').classList.add('hidden');
+            
+            showToast('Photo uploaded successfully!');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removePhoto() {
+    gameState.gamePhoto = null;
+    resetPhotoUI();
+    showToast('Photo removed');
+}
+
+function resetPhotoUI() {
+    document.getElementById('photoPreview').src = '';
+    document.getElementById('photoPreviewContainer').classList.add('hidden');
+    document.getElementById('photoButtons').classList.remove('hidden');
+    document.getElementById('photoUpload').value = '';
+    document.getElementById('cameraInput').value = '';
+}
+
 function showEmailModal() {
     document.getElementById('emailModal').classList.remove('hidden');
 }
@@ -2990,6 +3168,14 @@ function hideEmailModal() {
 }
 
 async function sendEmail() {
+    // Check if photo is uploaded
+    if (!gameState.gamePhoto) {
+        hideEmailModal();
+        showToast('Please upload a game photo before sending email');
+        document.getElementById('photoUploadSection').scrollIntoView({ behavior: 'smooth' });
+        return;
+    }
+    
     const email = document.getElementById('emailInput').value;
     
     if (!email || !email.includes('@')) {
@@ -3006,6 +3192,7 @@ async function sendEmail() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 email: email,
+                gamePhoto: gameState.gamePhoto,
                 ...gameState.results
             })
         });
@@ -3037,6 +3224,9 @@ function resetGame() {
         }
     }
     
+    // Clear autosave when resetting
+    clearAutosave();
+    
     gameState = {
         courses: gameState.courses,
         selectedCourse: null,
@@ -3046,8 +3236,14 @@ function resetGame() {
         currentHole: 1,
         scores: {},
         results: null,
-        gameId: null
+        gameId: null,
+        gamePhoto: null,
+        gameStartedAt: null,
+        isGameInProgress: false
     };
+    
+    // Reset photo UI
+    resetPhotoUI();
     
     document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('appHeader').classList.remove('hidden');
@@ -3058,6 +3254,12 @@ function resetGame() {
     document.getElementById('step1').classList.remove('hidden');
     document.getElementById('step2').classList.add('hidden');
     document.getElementById('step3').classList.add('hidden');
+    
+    // Hide resume banner
+    const resumeBanner = document.getElementById('resumeGameBanner');
+    if (resumeBanner) {
+        resumeBanner.classList.add('hidden');
+    }
     
     const historySection = document.getElementById('historySection');
     if (historySection) {
