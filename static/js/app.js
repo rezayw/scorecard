@@ -14,13 +14,453 @@ let gameState = {
     gameId: null
 };
 
+// Auth State
+let authState = {
+    user: null,
+    otpType: null,
+    otpEmail: null,
+    resetToken: null,
+    resendTimer: null
+};
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     fetchCourses();
     updatePlayerInputs();
     loadHistory();
     loadLandingStats();
+    checkAuthStatus();
 });
+
+// =====================================
+// Authentication Functions
+// =====================================
+
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+        
+        if (data.authenticated) {
+            authState.user = data.user;
+            updateUIForLoggedInUser();
+        }
+    } catch (error) {
+        console.error('Failed to check auth status:', error);
+    }
+}
+
+function updateUIForLoggedInUser() {
+    if (authState.user) {
+        document.getElementById('accountBtnText').textContent = authState.user.name.split(' ')[0];
+        document.getElementById('welcomeUserName').textContent = authState.user.name;
+        document.getElementById('userWelcomeCard').classList.remove('hidden');
+        document.getElementById('quickStatsCard').classList.add('hidden');
+    } else {
+        document.getElementById('accountBtnText').textContent = 'Login';
+        document.getElementById('userWelcomeCard').classList.add('hidden');
+        document.getElementById('quickStatsCard').classList.remove('hidden');
+    }
+}
+
+function showAuthModal() {
+    if (authState.user) {
+        // Show account menu or logout
+        if (confirm('Do you want to logout?')) {
+            handleLogout();
+        }
+        return;
+    }
+    document.getElementById('authModal').classList.remove('hidden');
+    showLoginForm();
+}
+
+function hideAuthModal() {
+    document.getElementById('authModal').classList.add('hidden');
+    clearOtpInputs();
+    if (authState.resendTimer) {
+        clearInterval(authState.resendTimer);
+    }
+}
+
+function showLoginForm() {
+    document.getElementById('authModalTitle').textContent = 'Login';
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('otpForm').classList.add('hidden');
+    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    document.getElementById('resetPasswordForm').classList.add('hidden');
+}
+
+function showRegisterForm() {
+    document.getElementById('authModalTitle').textContent = 'Create Account';
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
+    document.getElementById('otpForm').classList.add('hidden');
+    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    document.getElementById('resetPasswordForm').classList.add('hidden');
+}
+
+function showOtpForm(email, type) {
+    authState.otpEmail = email;
+    authState.otpType = type;
+    
+    const titles = {
+        'verify': 'Verify Email',
+        'login': 'Login Verification',
+        'reset': 'Reset Password'
+    };
+    
+    document.getElementById('authModalTitle').textContent = titles[type] || 'Verify OTP';
+    document.getElementById('otpEmail').textContent = email;
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('otpForm').classList.remove('hidden');
+    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    document.getElementById('resetPasswordForm').classList.add('hidden');
+    
+    clearOtpInputs();
+    startResendTimer();
+    
+    // Focus first OTP input
+    document.querySelector('.otp-input[data-index="0"]').focus();
+}
+
+function showForgotPassword() {
+    document.getElementById('authModalTitle').textContent = 'Forgot Password';
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('otpForm').classList.add('hidden');
+    document.getElementById('forgotPasswordForm').classList.remove('hidden');
+    document.getElementById('resetPasswordForm').classList.add('hidden');
+}
+
+function showResetPasswordForm() {
+    document.getElementById('authModalTitle').textContent = 'Reset Password';
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('otpForm').classList.add('hidden');
+    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    document.getElementById('resetPasswordForm').classList.remove('hidden');
+}
+
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+async function handleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+        showToast('Please fill in all fields');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showOtpForm(email, 'login');
+            showToast('OTP sent to your email');
+        } else {
+            showToast(data.message || 'Login failed');
+            if (data.needVerification) {
+                showOtpForm(email, 'verify');
+            }
+        }
+    } catch (error) {
+        showToast('Login failed. Please try again.');
+    }
+    
+    showLoading(false);
+}
+
+async function handleRegister() {
+    const name = document.getElementById('registerName').value.trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const phone = document.getElementById('registerPhone').value.trim();
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('registerConfirmPassword').value;
+    
+    if (!name || !email || !password) {
+        showToast('Please fill in all required fields');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showToast('Password must be at least 6 characters');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        showToast('Passwords do not match');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, phone, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showOtpForm(email, 'verify');
+            showToast('OTP sent to your email');
+        } else {
+            showToast(data.message || 'Registration failed');
+        }
+    } catch (error) {
+        showToast('Registration failed. Please try again.');
+    }
+    
+    showLoading(false);
+}
+
+async function handleForgotPassword() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    
+    if (!email) {
+        showToast('Please enter your email');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        showOtpForm(email, 'reset');
+        showToast(data.message || 'If email exists, OTP will be sent');
+    } catch (error) {
+        showToast('Failed to send reset code');
+    }
+    
+    showLoading(false);
+}
+
+function getOtpValue() {
+    const inputs = document.querySelectorAll('.otp-input');
+    return Array.from(inputs).map(input => input.value).join('');
+}
+
+function clearOtpInputs() {
+    document.querySelectorAll('.otp-input').forEach(input => {
+        input.value = '';
+    });
+}
+
+function handleOtpInput(input) {
+    const value = input.value.replace(/\D/g, '');
+    input.value = value;
+    
+    if (value && input.dataset.index < 5) {
+        const nextInput = document.querySelector(`.otp-input[data-index="${parseInt(input.dataset.index) + 1}"]`);
+        if (nextInput) nextInput.focus();
+    }
+    
+    // Auto-submit when all fields are filled
+    if (getOtpValue().length === 6) {
+        handleVerifyOtp();
+    }
+}
+
+function handleOtpKeydown(event, input) {
+    if (event.key === 'Backspace' && !input.value && input.dataset.index > 0) {
+        const prevInput = document.querySelector(`.otp-input[data-index="${parseInt(input.dataset.index) - 1}"]`);
+        if (prevInput) {
+            prevInput.focus();
+            prevInput.value = '';
+        }
+    }
+}
+
+async function handleVerifyOtp() {
+    const otp = getOtpValue();
+    
+    if (otp.length !== 6) {
+        showToast('Please enter the complete OTP');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        let endpoint = '';
+        if (authState.otpType === 'verify') {
+            endpoint = '/api/auth/verify-register';
+        } else if (authState.otpType === 'login') {
+            endpoint = '/api/auth/verify-login';
+        } else if (authState.otpType === 'reset') {
+            endpoint = '/api/auth/verify-reset';
+        }
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: authState.otpEmail, otp })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (authState.otpType === 'reset') {
+                authState.resetToken = data.resetToken;
+                showResetPasswordForm();
+                showToast('OTP verified. Create new password.');
+            } else {
+                authState.user = data.user;
+                updateUIForLoggedInUser();
+                hideAuthModal();
+                showToast('Welcome, ' + data.user.name + '!');
+            }
+        } else {
+            showToast(data.message || 'Invalid OTP');
+            clearOtpInputs();
+            document.querySelector('.otp-input[data-index="0"]').focus();
+        }
+    } catch (error) {
+        showToast('Verification failed. Please try again.');
+    }
+    
+    showLoading(false);
+}
+
+async function handleResetPassword() {
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmNewPassword').value;
+    
+    if (!newPassword || !confirmPassword) {
+        showToast('Please fill in all fields');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        showToast('Password must be at least 6 characters');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        showToast('Passwords do not match');
+        return;
+    }
+    
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: authState.otpEmail,
+                resetToken: authState.resetToken,
+                newPassword
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Password reset successfully');
+            showLoginForm();
+            document.getElementById('loginEmail').value = authState.otpEmail;
+        } else {
+            showToast(data.message || 'Reset failed');
+        }
+    } catch (error) {
+        showToast('Reset failed. Please try again.');
+    }
+    
+    showLoading(false);
+}
+
+function startResendTimer() {
+    let seconds = 60;
+    const resendBtn = document.getElementById('resendOtpBtn');
+    const timerSpan = document.getElementById('resendTimer');
+    
+    resendBtn.disabled = true;
+    resendBtn.classList.add('opacity-50');
+    timerSpan.classList.remove('hidden');
+    
+    if (authState.resendTimer) {
+        clearInterval(authState.resendTimer);
+    }
+    
+    authState.resendTimer = setInterval(() => {
+        seconds--;
+        timerSpan.textContent = ` (${seconds}s)`;
+        
+        if (seconds <= 0) {
+            clearInterval(authState.resendTimer);
+            resendBtn.disabled = false;
+            resendBtn.classList.remove('opacity-50');
+            timerSpan.classList.add('hidden');
+        }
+    }, 1000);
+}
+
+async function handleResendOtp() {
+    showLoading(true);
+    
+    try {
+        const response = await fetch('/api/auth/resend-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: authState.otpEmail,
+                type: authState.otpType
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('OTP resent successfully');
+            startResendTimer();
+        } else {
+            showToast(data.message || 'Failed to resend OTP');
+        }
+    } catch (error) {
+        showToast('Failed to resend OTP');
+    }
+    
+    showLoading(false);
+}
+
+async function handleLogout() {
+    showLoading(true);
+    
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        authState.user = null;
+        updateUIForLoggedInUser();
+        showToast('Logged out successfully');
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+    
+    showLoading(false);
+}
 
 // =====================================
 // Landing Page Functions

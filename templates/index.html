@@ -50,6 +50,16 @@
         <section id="landingPage" class="min-h-screen flex flex-col">
             <!-- Hero Section -->
             <div class="bg-gradient-to-br from-golf-950 via-golf-800 to-golf-600 text-white px-6 pt-12 pb-16 relative overflow-hidden">
+                <!-- User Account Button -->
+                <div class="absolute top-4 right-4 z-20">
+                    <button id="accountBtn" onclick="showAuthModal()" class="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span id="accountBtnText" class="text-sm font-medium">Login</span>
+                    </button>
+                </div>
+                
                 <!-- Background Pattern -->
                 <div class="absolute inset-0 opacity-10">
                     <div class="absolute top-10 left-10 text-8xl">⛳</div>
@@ -67,8 +77,26 @@
                 </div>
             </div>
             
-            <!-- Quick Stats -->
-            <div class="px-4 -mt-8 relative z-20">
+            <!-- User Welcome Card (shown when logged in) -->
+            <div id="userWelcomeCard" class="px-4 -mt-8 relative z-20 hidden">
+                <div class="bg-white rounded-2xl shadow-lg p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-golf-100 rounded-full flex items-center justify-center">
+                            <span class="text-xl">👤</span>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Welcome back,</p>
+                            <p id="welcomeUserName" class="font-semibold text-gray-800">User</p>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" class="text-red-500 text-sm font-medium hover:text-red-600">
+                        Logout
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Quick Stats (hidden when logged in card shows) -->
+            <div id="quickStatsCard" class="px-4 -mt-8 relative z-20">
                 <div class="bg-white rounded-2xl shadow-lg p-4 grid grid-cols-3 gap-4">
                     <div class="text-center">
                         <div class="text-2xl font-bold text-golf-600" id="statCourses">17</div>
@@ -391,6 +419,235 @@
                 </div>
             </section>
         </main>
+        
+        <!-- Auth Modal -->
+        <div id="authModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-3xl slide-up max-h-[90vh] overflow-y-auto">
+                <!-- Modal Header -->
+                <div class="sticky top-0 bg-white px-6 pt-6 pb-4 border-b">
+                    <div class="flex items-center justify-between">
+                        <h3 id="authModalTitle" class="text-xl font-bold text-gray-800">Login</h3>
+                        <button onclick="hideAuthModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Login Form -->
+                <div id="loginForm" class="p-6">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-golf-100 rounded-full mb-3">
+                            <span class="text-3xl">🔐</span>
+                        </div>
+                        <p class="text-gray-500 text-sm">Enter your credentials to continue</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="loginEmail" placeholder="your@email.com" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <div class="relative">
+                                <input type="password" id="loginPassword" placeholder="••••••••" 
+                                       class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 pr-12">
+                                <button type="button" onclick="togglePassword('loginPassword')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button onclick="handleLogin()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
+                            Login
+                        </button>
+                        
+                        <div class="text-center">
+                            <button onclick="showForgotPassword()" class="text-golf-600 text-sm font-medium hover:underline">
+                                Forgot Password?
+                            </button>
+                        </div>
+                        
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-gray-200"></div>
+                            </div>
+                            <div class="relative flex justify-center text-sm">
+                                <span class="px-2 bg-white text-gray-500">or</span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-center text-gray-600 text-sm">
+                            Don't have an account? 
+                            <button onclick="showRegisterForm()" class="text-golf-600 font-semibold hover:underline">Register</button>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Register Form -->
+                <div id="registerForm" class="p-6 hidden">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-golf-100 rounded-full mb-3">
+                            <span class="text-3xl">📝</span>
+                        </div>
+                        <p class="text-gray-500 text-sm">Create your account to get started</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input type="text" id="registerName" placeholder="John Doe" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="registerEmail" placeholder="your@email.com" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
+                            <input type="tel" id="registerPhone" placeholder="+62 812 3456 7890" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <div class="relative">
+                                <input type="password" id="registerPassword" placeholder="Min. 6 characters" 
+                                       class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 pr-12">
+                                <button type="button" onclick="togglePassword('registerPassword')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                            <input type="password" id="registerConfirmPassword" placeholder="Confirm password" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        </div>
+                        
+                        <button onclick="handleRegister()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
+                            Create Account
+                        </button>
+                        
+                        <p class="text-center text-gray-600 text-sm">
+                            Already have an account? 
+                            <button onclick="showLoginForm()" class="text-golf-600 font-semibold hover:underline">Login</button>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- OTP Verification Form -->
+                <div id="otpForm" class="p-6 hidden">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-golf-100 rounded-full mb-3">
+                            <span class="text-3xl">📧</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-800 mb-1">Check your email</h4>
+                        <p class="text-gray-500 text-sm">We sent a verification code to</p>
+                        <p id="otpEmail" class="text-golf-600 font-medium text-sm">email@example.com</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2 text-center">Enter OTP Code</label>
+                            <div class="flex justify-center gap-2">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="0" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="1" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="2" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="3" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="4" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0" data-index="5" oninput="handleOtpInput(this)" onkeydown="handleOtpKeydown(event, this)">
+                            </div>
+                        </div>
+                        
+                        <button id="verifyOtpBtn" onclick="handleVerifyOtp()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
+                            Verify
+                        </button>
+                        
+                        <div class="text-center">
+                            <p class="text-gray-500 text-sm mb-2">Didn't receive the code?</p>
+                            <button id="resendOtpBtn" onclick="handleResendOtp()" class="text-golf-600 font-medium text-sm hover:underline">
+                                Resend OTP
+                            </button>
+                            <span id="resendTimer" class="text-gray-400 text-sm hidden"> (60s)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Forgot Password Form -->
+                <div id="forgotPasswordForm" class="p-6 hidden">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-3">
+                            <span class="text-3xl">🔑</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-800 mb-1">Forgot Password?</h4>
+                        <p class="text-gray-500 text-sm">Enter your email to reset your password</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="forgotEmail" placeholder="your@email.com" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        </div>
+                        
+                        <button onclick="handleForgotPassword()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
+                            Send Reset Code
+                        </button>
+                        
+                        <p class="text-center text-gray-600 text-sm">
+                            Remember your password? 
+                            <button onclick="showLoginForm()" class="text-golf-600 font-semibold hover:underline">Login</button>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Reset Password Form -->
+                <div id="resetPasswordForm" class="p-6 hidden">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
+                            <span class="text-3xl">🔒</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-800 mb-1">Create New Password</h4>
+                        <p class="text-gray-500 text-sm">Your new password must be different from previous</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                            <div class="relative">
+                                <input type="password" id="newPassword" placeholder="Min. 6 characters" 
+                                       class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0 pr-12">
+                                <button type="button" onclick="togglePassword('newPassword')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                            <input type="password" id="confirmNewPassword" placeholder="Confirm password" 
+                                   class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-golf-500 focus:ring-0">
+                        </div>
+                        
+                        <button onclick="handleResetPassword()" class="w-full py-3 btn-primary text-white rounded-xl font-semibold">
+                            Reset Password
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- Email Modal -->
         <div id="emailModal" class="fixed inset-0 bg-black/50 modal-backdrop z-50 hidden flex items-end sm:items-center justify-center">

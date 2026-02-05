@@ -267,6 +267,56 @@ input:valid:not(:placeholder-shown) {
     100% { background-position: -200% 0; }
 }
 
+/* OTP Input Styles */
+.otp-input {
+    caret-color: #1a5f2a;
+    transition: all 0.2s ease;
+}
+
+.otp-input:focus {
+    border-color: #22c55e !important;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.otp-input:not(:placeholder-shown) {
+    background-color: #f0fdf4;
+    border-color: #22c55e;
+}
+
+/* Auth Modal Animations */
+#authModal .slide-up {
+    animation: modalSlideUp 0.3s ease forwards;
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Password Toggle Button */
+button[onclick*="togglePassword"] {
+    transition: color 0.2s ease;
+}
+
+button[onclick*="togglePassword"]:hover {
+    color: #1a5f2a;
+}
+
+/* Resend OTP Button */
+#resendOtpBtn {
+    transition: all 0.2s ease;
+}
+
+#resendOtpBtn:disabled {
+    cursor: not-allowed;
+}
+
 /* Print Styles */
 @media print {
     .no-print {

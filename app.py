@@ -120,11 +120,217 @@ def init_db():
         )
     ''')
     
+    # Create User table for authentication
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS User (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT,
+            isVerified INTEGER DEFAULT 0,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create OTP table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS OTP (
+            id TEXT PRIMARY KEY,
+            email TEXT NOT NULL,
+            otp TEXT NOT NULL,
+            type TEXT NOT NULL,
+            expiresAt DATETIME NOT NULL,
+            isUsed INTEGER DEFAULT 0,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
 # Initialize database on startup
 init_db()
+
+# =====================================
+# Email OTP Functions
+# =====================================
+
+def generate_otp():
+    """Generate a 6-digit OTP"""
+    return ''.join(random.choices(string.digits, k=6))
+
+def hash_password(password):
+    """Hash password with SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def get_otp_email_template(otp, otp_type='verify'):
+    """Generate HTML email template for OTP"""
+    if otp_type == 'verify':
+        title = 'Verify Your Email'
+        message = 'Thank you for registering with Golf Scorecard Indonesia. Please use the following OTP to verify your email address.'
+    elif otp_type == 'login':
+        title = 'Login Verification'
+        message = 'You are trying to login to Golf Scorecard Indonesia. Please use the following OTP to complete your login.'
+    elif otp_type == 'reset':
+        title = 'Reset Your Password'
+        message = 'You have requested to reset your password for Golf Scorecard Indonesia. Please use the following OTP to proceed.'
+    else:
+        title = 'Your OTP Code'
+        message = 'Here is your OTP code for Golf Scorecard Indonesia.'
+    
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{title}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td align="center" style="padding: 40px 0;">
+                    <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #14532d 0%, #166534 50%, #22c55e 100%); padding: 40px 30px; text-align: center; border-radius: 16px 16px 0 0;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">⛳</div>
+                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Golf Scorecard</h1>
+                                <p style="color: #bbf7d0; margin: 5px 0 0 0; font-size: 14px;">Indonesia Edition</p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px 30px;">
+                                <h2 style="color: #14532d; margin: 0 0 20px 0; font-size: 24px; text-align: center;">{title}</h2>
+                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; text-align: center; margin: 0 0 30px 0;">
+                                    {message}
+                                </p>
+                                
+                                <!-- OTP Box -->
+                                <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #22c55e; border-radius: 12px; padding: 30px; text-align: center; margin: 0 0 30px 0;">
+                                    <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px;">Your OTP Code</p>
+                                    <div style="font-size: 40px; font-weight: bold; color: #14532d; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                        {otp}
+                                    </div>
+                                </div>
+                                
+                                <p style="color: #9ca3af; font-size: 14px; text-align: center; margin: 0;">
+                                    ⏱️ This code will expire in <strong>5 minutes</strong>
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Warning -->
+                        <tr>
+                            <td style="padding: 0 30px 30px 30px;">
+                                <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 0 8px 8px 0;">
+                                    <p style="color: #92400e; font-size: 13px; margin: 0;">
+                                        ⚠️ <strong>Security Notice:</strong> Never share this OTP with anyone. Our team will never ask for your OTP.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #f9fafb; padding: 25px 30px; text-align: center; border-radius: 0 0 16px 16px; border-top: 1px solid #e5e7eb;">
+                                <p style="color: #6b7280; font-size: 12px; margin: 0 0 10px 0;">
+                                    🏌️ Track your scores across premium Indonesian golf courses
+                                </p>
+                                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+                                    © 2026 Golf Scorecard Indonesia. All rights reserved.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    '''
+
+def send_otp_email(email, otp, otp_type='verify'):
+    """Send OTP email using Resend API"""
+    try:
+        if otp_type == 'verify':
+            subject = '🔐 Verify Your Email - Golf Scorecard Indonesia'
+        elif otp_type == 'login':
+            subject = '🔑 Login Verification - Golf Scorecard Indonesia'
+        elif otp_type == 'reset':
+            subject = '🔄 Password Reset - Golf Scorecard Indonesia'
+        else:
+            subject = '📧 Your OTP Code - Golf Scorecard Indonesia'
+        
+        html_content = get_otp_email_template(otp, otp_type)
+        
+        response = requests.post(
+            'https://api.resend.com/emails',
+            headers={
+                'Authorization': f'Bearer {RESEND_API_KEY}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'from': RESEND_FROM_EMAIL,
+                'to': [email],
+                'subject': subject,
+                'html': html_content
+            }
+        )
+        
+        if response.status_code == 200:
+            return True, response.json()
+        else:
+            return False, response.json()
+    except Exception as e:
+        return False, str(e)
+
+def save_otp(email, otp, otp_type):
+    """Save OTP to database"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    otp_id = secrets.token_hex(16)
+    expires_at = datetime.now() + timedelta(minutes=5)
+    
+    # Invalidate previous OTPs for this email and type
+    cursor.execute('''
+        UPDATE OTP SET isUsed = 1 WHERE email = ? AND type = ? AND isUsed = 0
+    ''', (email, otp_type))
+    
+    cursor.execute('''
+        INSERT INTO OTP (id, email, otp, type, expiresAt) VALUES (?, ?, ?, ?, ?)
+    ''', (otp_id, email, otp, otp_type, expires_at))
+    
+    conn.commit()
+    conn.close()
+    return otp_id
+
+def verify_otp(email, otp, otp_type):
+    """Verify OTP from database"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id FROM OTP 
+        WHERE email = ? AND otp = ? AND type = ? AND isUsed = 0 AND expiresAt > ?
+    ''', (email, otp, otp_type, datetime.now()))
+    
+    result = cursor.fetchone()
+    
+    if result:
+        # Mark OTP as used
+        cursor.execute('UPDATE OTP SET isUsed = 1 WHERE id = ?', (result[0],))
+        conn.commit()
+        conn.close()
+        return True
+    
+    conn.close()
+    return False
 
 # Indonesia Golf Courses Database
 GOLF_COURSES = {
@@ -630,6 +836,283 @@ def get_game_history(limit=20):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# =====================================
+# Authentication API Routes
+# =====================================
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """Register a new user and send OTP"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    name = data.get('name', '').strip()
+    phone = data.get('phone', '').strip()
+    
+    if not email or not password or not name:
+        return jsonify({'success': False, 'message': 'Email, password, and name are required'}), 400
+    
+    if len(password) < 6:
+        return jsonify({'success': False, 'message': 'Password must be at least 6 characters'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if user already exists
+    cursor.execute('SELECT id, isVerified FROM User WHERE email = ?', (email,))
+    existing_user = cursor.fetchone()
+    
+    if existing_user:
+        if existing_user[1]:  # isVerified
+            conn.close()
+            return jsonify({'success': False, 'message': 'Email already registered'}), 400
+        else:
+            # User exists but not verified, update and resend OTP
+            cursor.execute('''
+                UPDATE User SET password = ?, name = ?, phone = ?, updatedAt = ? WHERE email = ?
+            ''', (hash_password(password), name, phone, datetime.now(), email))
+            conn.commit()
+    else:
+        # Create new user
+        user_id = secrets.token_hex(16)
+        cursor.execute('''
+            INSERT INTO User (id, email, password, name, phone) VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, email, hash_password(password), name, phone))
+        conn.commit()
+    
+    conn.close()
+    
+    # Generate and send OTP
+    otp = generate_otp()
+    save_otp(email, otp, 'verify')
+    success, result = send_otp_email(email, otp, 'verify')
+    
+    if success:
+        return jsonify({'success': True, 'message': 'OTP sent to your email'})
+    else:
+        return jsonify({'success': True, 'message': 'Account created. OTP sending may be delayed.'})
+
+
+@app.route('/api/auth/verify-register', methods=['POST'])
+def verify_register():
+    """Verify registration OTP"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    otp = data.get('otp', '').strip()
+    
+    if not email or not otp:
+        return jsonify({'success': False, 'message': 'Email and OTP are required'}), 400
+    
+    if verify_otp(email, otp, 'verify'):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('UPDATE User SET isVerified = 1, updatedAt = ? WHERE email = ?', (datetime.now(), email))
+        
+        # Get user data
+        cursor.execute('SELECT id, name, email FROM User WHERE email = ?', (email,))
+        user = cursor.fetchone()
+        conn.commit()
+        conn.close()
+        
+        if user:
+            session['user_id'] = user[0]
+            session['user_name'] = user[1]
+            session['user_email'] = user[2]
+            return jsonify({
+                'success': True, 
+                'message': 'Email verified successfully',
+                'user': {'id': user[0], 'name': user[1], 'email': user[2]}
+            })
+    
+    return jsonify({'success': False, 'message': 'Invalid or expired OTP'}), 400
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Login and send OTP"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    
+    if not email or not password:
+        return jsonify({'success': False, 'message': 'Email and password are required'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, name, isVerified FROM User WHERE email = ? AND password = ?', 
+                   (email, hash_password(password)))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
+    
+    if not user[2]:  # isVerified
+        return jsonify({'success': False, 'message': 'Please verify your email first', 'needVerification': True}), 401
+    
+    # Generate and send OTP
+    otp = generate_otp()
+    save_otp(email, otp, 'login')
+    success, result = send_otp_email(email, otp, 'login')
+    
+    return jsonify({'success': True, 'message': 'OTP sent to your email'})
+
+
+@app.route('/api/auth/verify-login', methods=['POST'])
+def verify_login():
+    """Verify login OTP"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    otp = data.get('otp', '').strip()
+    
+    if not email or not otp:
+        return jsonify({'success': False, 'message': 'Email and OTP are required'}), 400
+    
+    if verify_otp(email, otp, 'login'):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, name, email FROM User WHERE email = ?', (email,))
+        user = cursor.fetchone()
+        conn.close()
+        
+        if user:
+            session['user_id'] = user[0]
+            session['user_name'] = user[1]
+            session['user_email'] = user[2]
+            return jsonify({
+                'success': True, 
+                'message': 'Login successful',
+                'user': {'id': user[0], 'name': user[1], 'email': user[2]}
+            })
+    
+    return jsonify({'success': False, 'message': 'Invalid or expired OTP'}), 400
+
+
+@app.route('/api/auth/forgot-password', methods=['POST'])
+def forgot_password():
+    """Request password reset OTP"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM User WHERE email = ?', (email,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user:
+        # Don't reveal if email exists
+        return jsonify({'success': True, 'message': 'If the email exists, OTP will be sent'})
+    
+    # Generate and send OTP
+    otp = generate_otp()
+    save_otp(email, otp, 'reset')
+    success, result = send_otp_email(email, otp, 'reset')
+    
+    return jsonify({'success': True, 'message': 'If the email exists, OTP will be sent'})
+
+
+@app.route('/api/auth/verify-reset', methods=['POST'])
+def verify_reset():
+    """Verify reset OTP"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    otp = data.get('otp', '').strip()
+    
+    if not email or not otp:
+        return jsonify({'success': False, 'message': 'Email and OTP are required'}), 400
+    
+    if verify_otp(email, otp, 'reset'):
+        # Generate a temporary token for password reset
+        reset_token = secrets.token_hex(32)
+        session['reset_email'] = email
+        session['reset_token'] = reset_token
+        return jsonify({'success': True, 'message': 'OTP verified', 'resetToken': reset_token})
+    
+    return jsonify({'success': False, 'message': 'Invalid or expired OTP'}), 400
+
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+def reset_password():
+    """Reset password with verified token"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    reset_token = data.get('resetToken', '')
+    new_password = data.get('newPassword', '')
+    
+    if not email or not reset_token or not new_password:
+        return jsonify({'success': False, 'message': 'All fields are required'}), 400
+    
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'Password must be at least 6 characters'}), 400
+    
+    # Verify reset token
+    if session.get('reset_email') != email or session.get('reset_token') != reset_token:
+        return jsonify({'success': False, 'message': 'Invalid reset token'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('UPDATE User SET password = ?, updatedAt = ? WHERE email = ?', 
+                   (hash_password(new_password), datetime.now(), email))
+    conn.commit()
+    conn.close()
+    
+    # Clear reset session
+    session.pop('reset_email', None)
+    session.pop('reset_token', None)
+    
+    return jsonify({'success': True, 'message': 'Password reset successfully'})
+
+
+@app.route('/api/auth/resend-otp', methods=['POST'])
+def resend_otp():
+    """Resend OTP"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    otp_type = data.get('type', 'verify')
+    
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'}), 400
+    
+    if otp_type not in ['verify', 'login', 'reset']:
+        return jsonify({'success': False, 'message': 'Invalid OTP type'}), 400
+    
+    # Generate and send new OTP
+    otp = generate_otp()
+    save_otp(email, otp, otp_type)
+    success, result = send_otp_email(email, otp, otp_type)
+    
+    if success:
+        return jsonify({'success': True, 'message': 'OTP resent successfully'})
+    else:
+        return jsonify({'success': False, 'message': 'Failed to send OTP. Please try again.'})
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """Logout user"""
+    session.clear()
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
+
+
+@app.route('/api/auth/me')
+def get_current_user():
+    """Get current logged in user"""
+    if 'user_id' in session:
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'id': session.get('user_id'),
+                'name': session.get('user_name'),
+                'email': session.get('user_email')
+            }
+        })
+    return jsonify({'authenticated': False})
+
 
 @app.route('/api/courses')
 def get_courses():
